@@ -11,6 +11,7 @@ import { QualityEngine } from "./quality/quality-engine.ts";
 import { BUILTIN_WORKFLOWS, resolveWorkflow } from "./workflow/builtin-workflows.ts";
 import type { WorkflowDefinition } from "./workflow/workflow.ts";
 import { buildCreativeCrew } from "./agents/crew-factory.ts";
+import { ContentService } from "./content/content-service.ts";
 import { RenderService } from "./render/render-service.ts";
 import { AnalyticsService } from "./analytics/analytics-service.ts";
 import type { EpisodeMetrics } from "./analytics/metrics.ts";
@@ -56,6 +57,7 @@ async function main(): Promise<number> {
       local: { type: "boolean", default: false },
       "no-quality": { type: "boolean", default: false },
       agents: { type: "boolean", default: false },
+      render: { type: "boolean", default: false },
       workflow: { type: "string" },
       metrics: { type: "string" },
       exports: { type: "string", default: ".acf-exports" },
@@ -82,6 +84,37 @@ async function main(): Promise<number> {
       console.log("Built-in workflows:");
       for (const w of BUILTIN_WORKFLOWS) {
         console.log(`  ${w.id.padEnd(10)} ${w.name} — ${w.description} (${w.stages.length} stages)`);
+      }
+      return 0;
+    }
+
+    case "video": {
+      // Generic entry point: ANY rhyme/song/story text -> storyboard -> episode -> (optional) MP4.
+      if (!arg) return usage('video "<rhyme / song / story text>" [--render] [--json]');
+      const { registry } = buildProviderRegistry({
+        forceLocal: values.local as boolean,
+        objectStore: new FileObjectStore(values.assets as string),
+      });
+      const result = await new ContentService(store, registry).createFromContent(arg);
+      if (values.json) {
+        console.log(JSON.stringify({ channelId: result.channelId, storyboard: result.storyboard }, null, 2));
+      } else {
+        console.log(`✓ Understood content -> "${result.storyboard.title}" (${result.storyboard.scenes.length} scenes)`);
+        console.log(`  style: ${result.storyboard.style}`);
+        console.log(`  cast:  ${result.storyboard.characters.map((c) => c.name).join(", ")}`);
+        for (const s of result.storyboard.scenes) {
+          console.log(`  Scene ${s.index + 1}: "${s.lyrics}"`);
+          console.log(`    visual: ${s.visual}`);
+          console.log(`    action: ${s.action}`);
+        }
+        console.log(`  channel id: ${result.channelId}  (episode 1 created with ${result.episode.assets.length} assets)`);
+      }
+      if (values.render) {
+        const r = await new RenderService(store, values.renders as string).render(result.channelId, 1);
+        console.log(`\n✓ Rendered MP4: ${r.outputPath} (${(r.sizeBytes / 1_048_576).toFixed(2)} MB, ${r.durationSec.toFixed(1)}s)`);
+        console.log(`  sources: images=${r.imageSource}, audio=${r.audioSource}`);
+      } else {
+        console.log(`\n  → to render: acf render ${result.channelId} 1 ${values.sqlite ? `--sqlite ${values.sqlite}` : `--dir ${values.dir}`} --renders ${values.renders}`);
       }
       return 0;
     }
@@ -247,8 +280,8 @@ async function main(): Promise<number> {
 
     default:
       return usage(
-        "seed | channels | providers | workflows | memory <id> | create <id> | render <id> <n> | " +
-          "publish <id> <n> | metrics <id> | insights <id> | schedule <id> | serve",
+        'video "<text>" | seed | channels | providers | workflows | memory <id> | create <id> | ' +
+          "render <id> <n> | publish <id> <n> | metrics <id> | insights <id> | schedule <id> | serve",
       );
   }
 }

@@ -17,6 +17,10 @@ export interface CharacterAppearance {
   readonly outfit: string; // signature clothing, worn unless an episode overrides
   readonly accessories: readonly string[]; // "red scarf", "explorer backpack"
   readonly palette: readonly string[]; // dominant colors, e.g. ["#E8622C", "#FFFFFF"]
+  /** Free-form description used verbatim as the identity fragment when set. Lets characters
+   *  generated on the fly (Content Director) skip the structured fields while still flowing
+   *  through the same identity-locking + consistency machinery. */
+  readonly promptDescription?: string;
 }
 
 /** Mutable-per-episode traits that still belong to the character's memory. */

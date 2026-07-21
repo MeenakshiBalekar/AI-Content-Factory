@@ -29,6 +29,14 @@ export interface CreateEpisodeOptions {
   /** Workflow to execute (Module 5). Validated and topologically ordered; defaults to the
    *  orchestrator's configured plan (the standard pipeline). */
   readonly workflow?: WorkflowDefinition;
+  /** Pre-built content (from the Content Understanding layer): a beat sheet + title/logline
+   *  derived from arbitrary user input. When supplied, the deterministic StoryPlanner is
+   *  bypassed and the media pipeline renders exactly these scenes. */
+  readonly content?: {
+    readonly beats: readonly StoryBeat[];
+    readonly title: string;
+    readonly logline: string;
+  };
   readonly now?: () => Date;
 }
 
@@ -96,13 +104,15 @@ export class EpisodeOrchestrator {
 
     const planner = new StoryPlanner(memory);
     const composer = new PromptComposer(memory);
-    const beats = planner.beats(nextNumber);
+    // Content Understanding layer: when a beat sheet is supplied (from arbitrary user input),
+    // the media pipeline renders exactly those scenes; otherwise the deterministic StoryPlanner
+    // generates a template arc from the channel's cast.
+    const beats = opts.content ? opts.content.beats : planner.beats(nextNumber);
 
-    // Module 7: a multi-agent crew develops a creative brief before planning. Its theme +
-    // hook enrich the story; the deterministic StoryPlanner still owns beat structure so the
-    // consistency guarantees (characters, voices, scenes) are untouched.
+    // Module 7: a multi-agent crew develops a creative brief before planning. Skipped when the
+    // content is supplied externally (the Content Director already did the authoring).
     let creativeBrief: CreativeBrief | undefined;
-    if (this.#crew) {
+    if (this.#crew && !opts.content) {
       creativeBrief = await this.#crew.develop({
         channelPremise: memory.channel.premise,
         audience: memory.channel.audience,
@@ -113,7 +123,8 @@ export class EpisodeOrchestrator {
       });
     }
 
-    const baseLogline = planner.logline(nextNumber);
+    const title = opts.content ? opts.content.title : planner.title(nextNumber);
+    const baseLogline = opts.content ? opts.content.logline : planner.logline(nextNumber);
     const focus = opts.brief ? ` Focus: ${opts.brief}.` : "";
     const logline = creativeBrief
       ? `${baseLogline}${focus} Creative direction: ${creativeBrief.theme}`
@@ -124,7 +135,7 @@ export class EpisodeOrchestrator {
       composer,
       beats,
       logline,
-      title: planner.title(nextNumber),
+      title,
       episodeNumber: nextNumber,
       creativeBrief,
     };
@@ -169,7 +180,7 @@ export class EpisodeOrchestrator {
       id: asEpisodeId(`${channelId}-ep-${nextNumber}`),
       channelId,
       number: nextNumber,
-      title: planner.title(nextNumber),
+      title,
       logline,
       beats,
       assets,

@@ -40,9 +40,16 @@ export function identitySeed(channelId: ChannelId, character: Character): number
   return digest.readUInt32BE(0) % 2_147_483_647;
 }
 
-/** The canonical, always-injected description of the character's appearance. */
+/** The canonical, always-injected description of the character's appearance. Characters
+ *  generated on the fly may supply a free-form `promptDescription` instead of the structured
+ *  fields; when present it is used verbatim so any user-driven cast flows through the same
+ *  consistency machinery. */
 export function identityFragment(character: Character): string {
   const a = character.appearance;
+  if (a.promptDescription && a.promptDescription.trim()) {
+    const palette = a.palette.length ? ` Signature palette: ${a.palette.join(", ")}.` : "";
+    return `${character.name}: ${a.promptDescription.trim()}${palette}`;
+  }
   const accessories = a.accessories.length
     ? `, wearing ${a.accessories.join(" and ")}`
     : "";

@@ -26,15 +26,25 @@ So this document does two things:
 
 ---
 
-## 1. Product thesis
+## 1. Product thesis & the two layers
 
-The differentiator is **memory**, not raw generation. Anyone can call an image model. The
-moat is that the platform *remembers* a channel so completely that `Create Episode 248`
-needs almost no input: it already knows every character's appearance and voice, every
-recurring location, the animation style, the intro/outro, the music, the thumbnail style,
-the subtitle format, the best-performing hooks, and the publishing schedule.
+The platform is **generic**: a user provides any children's rhyme, song, story, or sequence,
+and the system produces a complete animated video. There is no hardcoded or required
+character — a cast is *generated from the input*. Two cleanly separated layers make this work:
 
-Everything below serves that thesis. The kernel that makes it true is Module 1.
+1. **Content Understanding layer** (`content/`) — *what is happening?* The `ContentDirector`
+   turns arbitrary text into a `Storyboard`: title, visual style, an invented cast, and a
+   scene sequence (lyrics · visual · action · environment · song). It uses a self-hosted text
+   model when configured and a deterministic decomposition otherwise, so it always runs.
+2. **Media Generation layer** (orchestrator + providers + render) — *how do we turn those
+   events into media?* It consumes a storyboard (bridged to a generic channel + beat sheet)
+   and knows nothing about any specific character; it generates images/voice/music/subtitles
+   per scene and assembles the MP4.
+
+A second, complementary capability is **memory**: a channel can *persist* a cast so a series
+stays consistent across episodes (the "Create Episode 248" path, Module 1). Generic
+one-off content and persistent series are the same media layer with different front-ends —
+the `ContentDirector` for arbitrary input, the `StoryPlanner` for a remembered channel.
 
 ---
 

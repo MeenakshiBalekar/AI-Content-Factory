@@ -81,6 +81,20 @@ export type { FontContext } from "./render/fonts.ts";
 export { RenderService } from "./render/render-service.ts";
 export type { RenderResult } from "./render/render-service.ts";
 
+// Content Understanding layer — arbitrary rhyme/song/story -> generic storyboard -> video.
+export type { Storyboard, StoryboardScene, CharacterSpec } from "./content/storyboard.ts";
+export { validateStoryboard } from "./content/storyboard.ts";
+export {
+  ContentDirector,
+  decomposeDeterministically,
+  splitIntoLines,
+} from "./content/content-director.ts";
+export type { DirectOptions } from "./content/content-director.ts";
+export { storyboardToPlan } from "./content/storyboard-adapter.ts";
+export type { ContentEpisodePlan } from "./content/storyboard-adapter.ts";
+export { ContentService } from "./content/content-service.ts";
+export type { CreateFromContentResult } from "./content/content-service.ts";
+
 // Module 7 — multi-agent orchestrator.
 export type { Agent, AgentRole, AgentMessage, AgentContext } from "./agents/agent.ts";
 export { parseVerdict, extractField } from "./agents/agent.ts";
