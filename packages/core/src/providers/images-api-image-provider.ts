@@ -51,14 +51,25 @@ export class ImagesApiImageProvider implements ImageProvider {
         prompt: req.prompt,
         size: sizeForAspect(req.aspect),
         n: 1,
+        // Ask for base64 inline; servers that ignore this and return a URL are handled below.
+        response_format: "b64_json",
       },
     });
 
     const first = res.data[0];
-    if (!first?.b64_json) {
-      throw new Error(`${this.name}: response had no base64 image`);
+    if (!first) throw new Error(`${this.name}: response contained no image`);
+
+    // Prefer inline base64; otherwise download the returned URL (LocalAI / SD-WebUI often
+    // return a hosted URL). Either way we persist real bytes to the object store.
+    let bytes: Uint8Array;
+    if (first.b64_json) {
+      bytes = Buffer.from(first.b64_json, "base64");
+    } else if (first.url) {
+      bytes = await this.#http.requestBytes({ method: "GET", url: first.url, expect: "bytes", timeoutMs: 120_000 });
+    } else {
+      throw new Error(`${this.name}: response had neither b64_json nor url`);
     }
-    const bytes = Buffer.from(first.b64_json, "base64");
+
     const uri = await this.#store.put(`image/${req.seed}.png`, bytes, "image/png");
     return { outputUri: uri, provider: this.name, meta: { seed: req.seed, bytes: bytes.length } };
   }
