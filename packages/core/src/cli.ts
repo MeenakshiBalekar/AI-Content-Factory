@@ -10,6 +10,7 @@ import { createApiServer, listen } from "./api/server.ts";
 import { QualityEngine } from "./quality/quality-engine.ts";
 import { BUILTIN_WORKFLOWS, resolveWorkflow } from "./workflow/builtin-workflows.ts";
 import type { WorkflowDefinition } from "./workflow/workflow.ts";
+import { buildCreativeCrew } from "./agents/crew-factory.ts";
 import { AnalyticsService } from "./analytics/analytics-service.ts";
 import type { EpisodeMetrics } from "./analytics/metrics.ts";
 import { PublishingService } from "./publishing/publishing-service.ts";
@@ -53,6 +54,7 @@ async function main(): Promise<number> {
       json: { type: "boolean", default: false },
       local: { type: "boolean", default: false },
       "no-quality": { type: "boolean", default: false },
+      agents: { type: "boolean", default: false },
       workflow: { type: "string" },
       metrics: { type: "string" },
       exports: { type: "string", default: ".acf-exports" },
@@ -161,12 +163,10 @@ async function main(): Promise<number> {
       if (!values.json) {
         console.log(`providers: text=${report.text} image=${report.image} audio=${report.audio} video=${report.video}`);
       }
-      const orchestrator = new EpisodeOrchestrator(
-        store,
-        registry,
-        undefined,
-        values["no-quality"] ? {} : { quality: new QualityEngine() },
-      );
+      const orchestrator = new EpisodeOrchestrator(store, registry, undefined, {
+        ...(values["no-quality"] ? {} : { quality: new QualityEngine() }),
+        ...(values.agents ? { crew: buildCreativeCrew(registry.text()) } : {}),
+      });
       const episode = await orchestrator.createEpisode(
         asChannelId(arg),
         {
@@ -190,6 +190,12 @@ async function main(): Promise<number> {
         console.log(`\n✓ Episode ${episode.number}: "${episode.title}"`);
         console.log(`  ${episode.logline}`);
         console.log(`  ${episode.assets.length} assets:`, summarize(episode.assets));
+        if (episode.creativeBrief) {
+          const b = episode.creativeBrief;
+          console.log(`  crew: ${b.transcript.length} turns, ${b.rounds} round(s), ${b.approved ? "APPROVED" : "shipped best draft"}`);
+          console.log(`    theme: ${b.theme}`);
+          console.log(`    hook:  "${b.hook}"`);
+        }
         if (episode.quality) {
           const warns = episode.quality.stages.reduce(
             (n, s) => n + s.findings.filter((f) => f.severity === "warn").length,

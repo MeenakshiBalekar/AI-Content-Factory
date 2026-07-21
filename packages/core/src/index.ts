@@ -59,6 +59,16 @@ export { StoryPlanner } from "./orchestrator/story-planner.ts";
 export { EpisodeOrchestrator } from "./orchestrator/orchestrator.ts";
 export type { CreateEpisodeOptions, OrchestratorOptions, StageEvent } from "./orchestrator/orchestrator.ts";
 
+// Module 7 — multi-agent orchestrator.
+export type { Agent, AgentRole, AgentMessage, AgentContext } from "./agents/agent.ts";
+export { parseVerdict, extractField } from "./agents/agent.ts";
+export { ROLE_SPECS } from "./agents/roles.ts";
+export type { RoleSpec } from "./agents/roles.ts";
+export { LlmAgent } from "./agents/llm-agent.ts";
+export { CreativeCrew } from "./agents/crew.ts";
+export type { CreativeBrief, CrewAgents, CrewOptions } from "./agents/crew.ts";
+export { buildCreativeCrew } from "./agents/crew-factory.ts";
+
 // Module 6 — publishing, analytics & the learning loop.
 export { ExportPublishTarget } from "./publishing/publish-target.ts";
 export type { PublishTarget, PublishRecord, ExportManifest } from "./publishing/publish-target.ts";

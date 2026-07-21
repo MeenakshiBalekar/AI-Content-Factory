@@ -14,6 +14,7 @@ import type { ProviderRegistry } from "../providers/provider.ts";
 import type { QualityEngine } from "../quality/quality-engine.ts";
 import { buildReport, hasRejects, type Finding, type StageQuality } from "../quality/report.ts";
 import { compileWorkflow, type WorkflowDefinition } from "../workflow/workflow.ts";
+import type { CreativeCrew, CreativeBrief } from "../agents/crew.ts";
 import {
   DEFAULT_PRODUCTION_PLAN,
   type ProductionStage,
@@ -46,6 +47,8 @@ export interface OrchestratorOptions {
   readonly quality?: QualityEngine;
   /** Attempt budget per stage when quality gating is on (first try included). */
   readonly maxAttemptsPerStage?: number;
+  /** When set, a multi-agent crew develops a creative brief before planning (Module 7). */
+  readonly crew?: CreativeCrew;
 }
 
 /**
@@ -62,6 +65,7 @@ export class EpisodeOrchestrator {
   readonly #plan: readonly ProductionStage[];
   readonly #quality: QualityEngine | undefined;
   readonly #maxAttempts: number;
+  readonly #crew: CreativeCrew | undefined;
 
   constructor(
     store: MemoryStore,
@@ -74,6 +78,7 @@ export class EpisodeOrchestrator {
     this.#plan = plan;
     this.#quality = opts.quality;
     this.#maxAttempts = Math.max(1, opts.maxAttemptsPerStage ?? 3);
+    this.#crew = opts.crew;
   }
 
   async createEpisode(
@@ -92,9 +97,27 @@ export class EpisodeOrchestrator {
     const planner = new StoryPlanner(memory);
     const composer = new PromptComposer(memory);
     const beats = planner.beats(nextNumber);
-    const logline = opts.brief
-      ? `${planner.logline(nextNumber)} Focus: ${opts.brief}.`
-      : planner.logline(nextNumber);
+
+    // Module 7: a multi-agent crew develops a creative brief before planning. Its theme +
+    // hook enrich the story; the deterministic StoryPlanner still owns beat structure so the
+    // consistency guarantees (characters, voices, scenes) are untouched.
+    let creativeBrief: CreativeBrief | undefined;
+    if (this.#crew) {
+      creativeBrief = await this.#crew.develop({
+        channelPremise: memory.channel.premise,
+        audience: memory.channel.audience,
+        episodeNumber: nextNumber,
+        previousTitle: memory.episodes.at(-1)?.title,
+        provenHooks: memory.channel.performance.bestHooks,
+        brief: opts.brief,
+      });
+    }
+
+    const baseLogline = planner.logline(nextNumber);
+    const focus = opts.brief ? ` Focus: ${opts.brief}.` : "";
+    const logline = creativeBrief
+      ? `${baseLogline}${focus} Creative direction: ${creativeBrief.theme}`
+      : `${baseLogline}${focus}`;
 
     const stageCtx = {
       memory,
@@ -103,6 +126,7 @@ export class EpisodeOrchestrator {
       logline,
       title: planner.title(nextNumber),
       episodeNumber: nextNumber,
+      creativeBrief,
     };
 
     // A workflow (validated + topologically ordered) overrides the configured plan.
@@ -150,6 +174,7 @@ export class EpisodeOrchestrator {
       beats,
       assets,
       ...(this.#quality ? { quality: buildReport(stageQualities) } : {}),
+      ...(creativeBrief ? { creativeBrief } : {}),
       workflowId: opts.workflow?.id ?? "standard",
       createdAt: now().toISOString(),
     };
@@ -167,20 +192,25 @@ export class EpisodeOrchestrator {
       logline: string;
       title: string;
       episodeNumber: number;
+      creativeBrief?: CreativeBrief | undefined;
     },
   ): Promise<EpisodeAsset[]> {
     const { composer, beats } = ctx;
     switch (stage.kind) {
       case "story": {
         // Close the learning loop: proven hooks (written into ChannelPerformance by the
-        // analytics module from real metrics) steer the next episode's opening.
+        // analytics module from real metrics) steer the next episode's opening. When a crew
+        // developed a brief (Module 7), its agreed hook leads.
         const perf = ctx.memory.channel.performance;
+        const crewHook = ctx.creativeBrief
+          ? `\nCrew hook (approved=${ctx.creativeBrief.approved}, rounds=${ctx.creativeBrief.rounds}): "${ctx.creativeBrief.hook}"`
+          : "";
         const provenHooks = perf.bestHooks.length
           ? `\nProven high-retention hooks to emulate: ${perf.bestHooks.map((h) => `"${h}"`).join("; ")}` +
             (perf.avgViewDurationSec ? `\nChannel avg view duration: ${perf.avgViewDurationSec}s — front-load the payoff.` : "")
           : "";
         const prompt =
-          `Channel: ${ctx.memory.channel.premise}\nAudience: ${ctx.memory.channel.audience}\n` +
+          `Channel: ${ctx.memory.channel.premise}\nAudience: ${ctx.memory.channel.audience}${crewHook}\n` +
           `Previous: ${ctx.memory.episodes.at(-1)?.title ?? "none"}${provenHooks}\n` +
           `Plan episode ${ctx.episodeNumber}: ${ctx.logline}`;
         const text = await this.#registry.text().generateText({ prompt, maxTokens: 400 });

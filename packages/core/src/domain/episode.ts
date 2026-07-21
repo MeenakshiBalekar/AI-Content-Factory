@@ -50,6 +50,20 @@ export interface Episode {
   readonly quality?: QualityReport;
   /** Which workflow produced this episode (Module 5); "standard" when unset by the caller. */
   readonly workflowId?: string;
+  /** Multi-agent creative brief (Module 7), attached when the orchestrator runs with a crew.
+   *  Structurally typed to keep the domain free of a dependency on the agents module. */
+  readonly creativeBrief?: {
+    readonly theme: string;
+    readonly logline: string;
+    readonly hook: string;
+    readonly rounds: number;
+    readonly approved: boolean;
+    readonly transcript: readonly {
+      readonly role: string;
+      readonly content: string;
+      readonly verdict?: "approve" | "revise";
+    }[];
+  };
   readonly createdAt: string;
 }
 
