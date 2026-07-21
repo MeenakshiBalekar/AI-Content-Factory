@@ -48,6 +48,8 @@ export interface Episode {
   readonly assets: readonly EpisodeAsset[];
   /** Quality audit, attached when the orchestrator runs with a QualityEngine (Module 4). */
   readonly quality?: QualityReport;
+  /** Which workflow produced this episode (Module 5); "standard" when unset by the caller. */
+  readonly workflowId?: string;
   readonly createdAt: string;
 }
 

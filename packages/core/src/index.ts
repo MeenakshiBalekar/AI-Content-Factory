@@ -51,6 +51,24 @@ export { StoryPlanner } from "./orchestrator/story-planner.ts";
 export { EpisodeOrchestrator } from "./orchestrator/orchestrator.ts";
 export type { CreateEpisodeOptions, OrchestratorOptions, StageEvent } from "./orchestrator/orchestrator.ts";
 
+// Module 5 — workflow engine.
+export {
+  CAPABILITY_FOR_KIND,
+  WorkflowValidationError,
+  assertValidWorkflow,
+  compileWorkflow,
+  topologicalOrder,
+  validateWorkflow,
+} from "./workflow/workflow.ts";
+export type { StageParams, WorkflowDefinition, WorkflowStage } from "./workflow/workflow.ts";
+export {
+  BUILTIN_WORKFLOWS,
+  SHORTS_WORKFLOW,
+  STANDARD_WORKFLOW,
+  findBuiltinWorkflow,
+  resolveWorkflow,
+} from "./workflow/builtin-workflows.ts";
+
 // Module 4 — quality engine.
 export { QualityEngine } from "./quality/quality-engine.ts";
 export {

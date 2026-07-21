@@ -94,9 +94,28 @@ budget; the full audit (findings, attempts, pass/fail) is persisted on the episo
 pixel-level character comparison vs reference images) as additional `Inspector`
 plug-ins; prompt-adjustment on retry; consistency levels L2–L4.
 
-### ⬜ Module 5 — Workflow Engine
-User-editable stage DAG over the existing plan model; drag-and-drop UI (Next.js). Templates
-and per-channel pipeline overrides.
+### ✅ Module 5 — Workflow Engine  *(built, 10 new tests — 64 total)*
+Pipelines as data: a validated DAG of typed stages that the orchestrator executes in
+dependency order. This is the model a drag-and-drop editor manipulates — the UI (a later
+app) is a view over exactly these objects.
+
+- `WorkflowDefinition` / `WorkflowStage`: stages with explicit `dependsOn` edges and
+  per-stage `params` (aspect ratio, duration) that override channel memory.
+- Validation: duplicate ids, unknown kinds, unknown/self dependencies, cycle detection
+  (Kahn's algorithm); `WorkflowValidationError` lists every problem at once.
+- Deterministic topological execution order; `compileWorkflow` → orchestrator stages
+  with capabilities resolved from a single kind→capability map.
+- Built-in templates: **standard** (full long-form pipeline, now with real dependency
+  edges) and **shorts** (9:16, 45-second target, no music stage — proving stage removal
+  and parameterization).
+- Per-channel custom workflows persist in `ChannelMemory.workflows` and shadow built-ins
+  by id; episodes record which workflow produced them (`episode.workflowId`).
+- API: `GET /v1/workflows`; `POST .../episodes` accepts `workflow` (400 on unknown or
+  invalid). CLI: `workflows` command + `--workflow shorts`.
+- Invalid workflows throw before any generation runs (nothing persisted, nothing billed).
+
+**Remaining for Module 5.1:** parallel execution of independent DAG branches, workflow
+CRUD endpoints, per-stage provider/model pinning, and the visual editor app.
 
 ### ⬜ Module 6 — Publishing + Analytics + Learning Loop
 Platform publishing (YouTube/Shorts/TikTok/…), scheduler, analytics ingest, and write-back

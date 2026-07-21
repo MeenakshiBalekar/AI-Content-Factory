@@ -134,6 +134,41 @@ test("POST validates body: bad number -> 400; unknown channel -> 404; bad JSON -
   }
 });
 
+test("GET /v1/workflows lists built-ins; POST with workflow 'shorts' produces a vertical episode", async () => {
+  const api = await startApi();
+  try {
+    const wfs = await getJson<{ workflows: { id: string }[] }>(`${api.base}/v1/workflows`);
+    assert.equal(wfs.status, 200);
+    assert.deepEqual(wfs.body.workflows.map((w) => w.id), ["standard", "shorts"]);
+
+    const res = await fetch(`${api.base}/v1/channels/tiny-explorers/episodes`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workflow: "shorts" }),
+    });
+    assert.equal(res.status, 202);
+    const { poll } = (await res.json()) as { poll: string };
+
+    let job: Job<Episode> | undefined;
+    for (let i = 0; i < 100; i++) {
+      job = (await getJson<Job<Episode>>(`${api.base}${poll}`)).body;
+      if (job.state === "succeeded" || job.state === "failed") break;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    assert.equal(job?.state, "succeeded");
+    assert.equal(job?.result?.workflowId, "shorts");
+    assert.ok(!job!.result!.assets.some((a) => a.kind === "music"));
+
+    const bad = await fetch(`${api.base}/v1/channels/tiny-explorers/episodes`, {
+      method: "POST",
+      body: JSON.stringify({ workflow: "does-not-exist" }),
+    });
+    assert.equal(bad.status, 400);
+  } finally {
+    await api.close();
+  }
+});
+
 test("GET /v1/jobs/{id} 404s for unknown job; unknown route 404s", async () => {
   const api = await startApi();
   try {

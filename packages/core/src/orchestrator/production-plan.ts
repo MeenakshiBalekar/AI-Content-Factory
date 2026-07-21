@@ -7,6 +7,11 @@ export interface ProductionStage {
   readonly label: string;
   /** Capability the stage needs; drives which provider the registry resolves. */
   readonly capability: "text" | "image" | "audio" | "video" | "none";
+  /** Per-stage overrides from the workflow (Module 5); unset falls back to channel memory. */
+  readonly params?: {
+    readonly aspect?: string;
+    readonly durationSec?: number;
+  };
 }
 
 export const DEFAULT_PRODUCTION_PLAN: readonly ProductionStage[] = [

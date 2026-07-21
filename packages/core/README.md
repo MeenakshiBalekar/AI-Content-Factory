@@ -1,11 +1,12 @@
-# @acf/core — Episode Kernel, Providers, Persistence, API & Quality (Modules 1–4)
+# @acf/core — Episode Kernel, Providers, Persistence, API, Quality & Workflows (Modules 1–5)
 
 The engine behind **"Create Episode 248."** — the platform loads everything it already
 knows about a channel (cast, voices, locations, style, format, performance) and turns one
 sentence into a fully-planned episode with every prompt composed from memory, every
-output quality-inspected, and rejected output regenerated.
+output quality-inspected, and rejected output regenerated — through a user-definable
+workflow DAG.
 
-Modules 1–4 of the AI Content Factory, all **fully functional** — no placeholder bodies.
+Modules 1–5 of the AI Content Factory, all **fully functional** — no placeholder bodies.
 Runs with **zero runtime dependencies** on Node ≥ 22.18 (native TypeScript execution,
 built-in test runner, built-in SQLite).
 
@@ -80,6 +81,23 @@ node src/cli.ts create tiny-explorers --no-quality   # raw pipeline
 
 Vision-model inspectors (blur, framing, lip-sync, pixel-level identity comparison) plug
 into the same `Inspector` interface in Module 4.1.
+
+## Workflow engine (Module 5)
+
+Pipelines are data: a validated DAG of stages with dependency edges and per-stage params.
+The orchestrator executes any workflow in deterministic topological order; invalid
+workflows (cycles, unknown kinds, dangling deps) are rejected before anything generates.
+
+```bash
+node src/cli.ts workflows                                      # list templates
+node src/cli.ts create tiny-explorers --workflow shorts        # 9:16, 45s, no music
+curl -X POST .../v1/channels/tiny-explorers/episodes -d '{"workflow":"shorts"}'
+```
+
+Built-ins: `standard` (full long-form) and `shorts` (vertical, parameterized aspect +
+duration, music stage removed). Channels can persist custom workflows in memory
+(`ChannelMemory.workflows`), which shadow built-ins by id; every episode records its
+`workflowId`. The future drag-and-drop editor is a UI over these same objects.
 
 ## Real providers (Module 2)
 

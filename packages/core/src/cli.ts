@@ -8,6 +8,8 @@ import { buildProviderRegistry } from "./providers/factory.ts";
 import { FileObjectStore } from "./storage/object-store.ts";
 import { createApiServer, listen } from "./api/server.ts";
 import { QualityEngine } from "./quality/quality-engine.ts";
+import { BUILTIN_WORKFLOWS, resolveWorkflow } from "./workflow/builtin-workflows.ts";
+import type { WorkflowDefinition } from "./workflow/workflow.ts";
 import { sampleChannel } from "./examples/sample-channel.ts";
 import { asChannelId } from "./domain/ids.ts";
 import type { EpisodeAsset } from "./domain/episode.ts";
@@ -46,6 +48,7 @@ async function main(): Promise<number> {
       json: { type: "boolean", default: false },
       local: { type: "boolean", default: false },
       "no-quality": { type: "boolean", default: false },
+      workflow: { type: "string" },
     },
   });
 
@@ -60,6 +63,14 @@ async function main(): Promise<number> {
       console.log("Provider wiring (local = free/offline placeholder, others cost money):");
       for (const [cap, name] of Object.entries(report)) {
         console.log(`  ${cap.padEnd(6)} → ${name}${name === "local" ? "  (free)" : "  ($$)"}`);
+      }
+      return 0;
+    }
+
+    case "workflows": {
+      console.log("Built-in workflows:");
+      for (const w of BUILTIN_WORKFLOWS) {
+        console.log(`  ${w.id.padEnd(10)} ${w.name} — ${w.description} (${w.stages.length} stages)`);
       }
       return 0;
     }
@@ -88,7 +99,15 @@ async function main(): Promise<number> {
     }
 
     case "create": {
-      if (!arg) return usage("create <channelId> [--brief ...] [--number N] [--local]");
+      if (!arg) return usage("create <channelId> [--brief ...] [--number N] [--workflow id] [--local]");
+      let workflow: WorkflowDefinition | undefined;
+      if (values.workflow) {
+        const channelMem = await store.load(asChannelId(arg));
+        workflow = resolveWorkflow(values.workflow as string, channelMem?.workflows);
+        if (!workflow) {
+          return fail(`unknown workflow "${values.workflow}". Run: workflows`);
+        }
+      }
       const { registry, report } = buildProviderRegistry({
         forceLocal: values.local as boolean,
         objectStore: new FileObjectStore(values.assets as string),
@@ -107,6 +126,7 @@ async function main(): Promise<number> {
         {
           ...(values.brief ? { brief: values.brief as string } : {}),
           ...(values.number ? { number: Number(values.number) } : {}),
+          ...(workflow ? { workflow } : {}),
         },
         (e) => {
           if (!values.json) {
@@ -154,7 +174,7 @@ async function main(): Promise<number> {
     }
 
     default:
-      return usage("seed | channels | providers | memory <id> | create <id> | serve");
+      return usage("seed | channels | providers | workflows | memory <id> | create <id> | serve");
   }
 }
 

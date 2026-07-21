@@ -13,6 +13,7 @@ import { PromptComposer } from "../prompt/prompt-composer.ts";
 import type { ProviderRegistry } from "../providers/provider.ts";
 import type { QualityEngine } from "../quality/quality-engine.ts";
 import { buildReport, hasRejects, type Finding, type StageQuality } from "../quality/report.ts";
+import { compileWorkflow, type WorkflowDefinition } from "../workflow/workflow.ts";
 import {
   DEFAULT_PRODUCTION_PLAN,
   type ProductionStage,
@@ -24,6 +25,9 @@ export interface CreateEpisodeOptions {
   readonly brief?: string;
   /** Override the auto-incremented episode number (otherwise last + 1). */
   readonly number?: number;
+  /** Workflow to execute (Module 5). Validated and topologically ordered; defaults to the
+   *  orchestrator's configured plan (the standard pipeline). */
+  readonly workflow?: WorkflowDefinition;
   readonly now?: () => Date;
 }
 
@@ -101,9 +105,12 @@ export class EpisodeOrchestrator {
       episodeNumber: nextNumber,
     };
 
+    // A workflow (validated + topologically ordered) overrides the configured plan.
+    const plan = opts.workflow ? compileWorkflow(opts.workflow) : this.#plan;
+
     const assets: EpisodeAsset[] = [];
     const stageQualities: StageQuality[] = [];
-    for (const stage of this.#plan) {
+    for (const stage of plan) {
       let produced = await this.#runStage(stage, stageCtx);
       let attempts = 1;
       let findings: Finding[] = [];
@@ -143,6 +150,7 @@ export class EpisodeOrchestrator {
       beats,
       assets,
       ...(this.#quality ? { quality: buildReport(stageQualities) } : {}),
+      workflowId: opts.workflow?.id ?? "standard",
       createdAt: now().toISOString(),
     };
 
@@ -185,12 +193,9 @@ export class EpisodeOrchestrator {
         const out: EpisodeAsset[] = [];
         for (const b of beats) {
           const { prompt, seed } = composer.imagePrompt(b);
-          const asset = await this.#registry.image().generateImage({
-            prompt,
-            seed,
-            aspect: ctx.memory.channel.style.aspectRatio,
-          });
-          out.push(this.#done(stage, `Keyframe beat ${b.index + 1}`, prompt, asset.provider, asset.outputUri, { seed, beat: b.index }));
+          const aspect = stage.params?.aspect ?? ctx.memory.channel.style.aspectRatio;
+          const asset = await this.#registry.image().generateImage({ prompt, seed, aspect });
+          out.push(this.#done(stage, `Keyframe beat ${b.index + 1}`, prompt, asset.provider, asset.outputUri, { seed, beat: b.index, aspect }));
         }
         return out;
       }
@@ -230,13 +235,15 @@ export class EpisodeOrchestrator {
         const out: EpisodeAsset[] = [];
         for (const b of beats) {
           const { prompt, seed } = composer.imagePrompt(b);
+          const aspect = stage.params?.aspect ?? ctx.memory.channel.style.aspectRatio;
+          const totalSec = stage.params?.durationSec ?? ctx.memory.channel.format.targetDurationSec;
           const asset = await this.#registry.video().generateVideo({
             prompt,
             seed,
-            aspect: ctx.memory.channel.style.aspectRatio,
-            durationSec: Math.round(ctx.memory.channel.format.targetDurationSec / beats.length),
+            aspect,
+            durationSec: Math.round(totalSec / beats.length),
           });
-          out.push(this.#done(stage, `Animate beat ${b.index + 1}`, prompt, asset.provider, asset.outputUri, { seed, beat: b.index }));
+          out.push(this.#done(stage, `Animate beat ${b.index + 1}`, prompt, asset.provider, asset.outputUri, { seed, beat: b.index, aspect }));
         }
         return out;
       }
@@ -267,12 +274,9 @@ export class EpisodeOrchestrator {
         // per episode, while style + hero identity stay locked by channel memory.
         const caption = ctx.title.split(/\s+/).slice(-3).join(" ");
         const { prompt, seed } = composer.thumbnailPrompt(heroId, caption);
-        const asset = await this.#registry.image().generateImage({
-          prompt,
-          seed,
-          aspect: ctx.memory.channel.style.aspectRatio,
-        });
-        return [this.#done(stage, "Thumbnail", prompt, asset.provider, asset.outputUri, { seed })];
+        const aspect = stage.params?.aspect ?? ctx.memory.channel.style.aspectRatio;
+        const asset = await this.#registry.image().generateImage({ prompt, seed, aspect });
+        return [this.#done(stage, "Thumbnail", prompt, asset.provider, asset.outputUri, { seed, aspect })];
       }
       case "metadata": {
         const prompt = `Write YouTube title, description and 10 tags for "${ctx.title}" — ${ctx.logline}. Audience: ${ctx.memory.channel.audience}.`;

@@ -3,6 +3,7 @@ import type { Character } from "../domain/character.ts";
 import type { Environment } from "../domain/environment.ts";
 import type { Episode } from "../domain/episode.ts";
 import type { VoiceProfile } from "../domain/voice.ts";
+import type { WorkflowDefinition } from "../workflow/workflow.ts";
 import type {
   ChannelId,
   CharacterId,
@@ -16,6 +17,8 @@ export interface ChannelMemory {
   readonly characters: Readonly<Record<CharacterId, Character>>;
   readonly voices: Readonly<Record<VoiceId, VoiceProfile>>;
   readonly environments: Readonly<Record<EnvironmentId, Environment>>;
+  /** Channel-specific workflow definitions (Module 5). Shadow built-ins by id. */
+  readonly workflows?: Readonly<Record<string, WorkflowDefinition>>;
   readonly episodes: readonly Episode[];
 }
 

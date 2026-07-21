@@ -4,6 +4,8 @@ import type { ProviderRegistry } from "../providers/provider.ts";
 import type { ProviderReport } from "../providers/factory.ts";
 import { EpisodeOrchestrator } from "../orchestrator/orchestrator.ts";
 import { QualityEngine } from "../quality/quality-engine.ts";
+import { BUILTIN_WORKFLOWS, resolveWorkflow } from "../workflow/builtin-workflows.ts";
+import { validateWorkflow, type WorkflowDefinition } from "../workflow/workflow.ts";
 import { InMemoryJobQueue, type JobQueue } from "../jobs/job-queue.ts";
 import type { Episode } from "../domain/episode.ts";
 import { asChannelId } from "../domain/ids.ts";
@@ -36,6 +38,8 @@ export interface ApiDeps {
 interface CreateEpisodeBody {
   readonly brief?: string;
   readonly number?: number;
+  /** Workflow id: a channel-defined workflow or a built-in ("standard", "shorts"). */
+  readonly workflow?: string;
 }
 
 function send(res: ServerResponse, status: number, body: unknown): void {
@@ -84,6 +88,18 @@ export function createApiServer(deps: ApiDeps): Server {
         return send(res, 200, { ok: true, providers: deps.providerReport });
       }
 
+      // GET /v1/workflows — built-in workflow templates
+      if (method === "GET" && url.pathname === "/v1/workflows") {
+        return send(res, 200, {
+          workflows: BUILTIN_WORKFLOWS.map((w) => ({
+            id: w.id,
+            name: w.name,
+            description: w.description,
+            stages: w.stages.length,
+          })),
+        });
+      }
+
       // /v1/channels...
       if (parts[0] === "v1" && parts[1] === "channels") {
         // GET /v1/channels
@@ -129,6 +145,20 @@ export function createApiServer(deps: ApiDeps): Server {
             if (raw.brief !== undefined && typeof raw.brief !== "string") {
               return sendError(res, 400, "\"brief\" must be a string");
             }
+            let workflow: WorkflowDefinition | undefined;
+            if (raw.workflow !== undefined) {
+              if (typeof raw.workflow !== "string") {
+                return sendError(res, 400, "\"workflow\" must be a string id");
+              }
+              workflow = resolveWorkflow(raw.workflow, memory.workflows);
+              if (!workflow) {
+                return sendError(res, 400, `unknown workflow "${raw.workflow}"`);
+              }
+              const problems = validateWorkflow(workflow);
+              if (problems.length) {
+                return sendError(res, 400, `workflow "${raw.workflow}" is invalid: ${problems.join("; ")}`);
+              }
+            }
 
             const jobId = jobs.submit((emit) =>
               orchestrator.createEpisode(
@@ -136,6 +166,7 @@ export function createApiServer(deps: ApiDeps): Server {
                 {
                   ...(raw.brief ? { brief: raw.brief } : {}),
                   ...(raw.number ? { number: raw.number } : {}),
+                  ...(workflow ? { workflow } : {}),
                 },
                 (ev) =>
                   emit({
