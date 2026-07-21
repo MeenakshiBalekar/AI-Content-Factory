@@ -13,6 +13,9 @@ import { PublishingService } from "../publishing/publishing-service.ts";
 import { ExportPublishTarget } from "../publishing/publish-target.ts";
 import type { PublishTarget } from "../publishing/publish-target.ts";
 import { CadenceParseError } from "../publishing/scheduler.ts";
+import { RenderService } from "../render/render-service.ts";
+import { FfmpegNotInstalledError } from "../render/ffmpeg.ts";
+import { createReadStream, existsSync, statSync } from "node:fs";
 import type { Episode } from "../domain/episode.ts";
 import { asChannelId } from "../domain/ids.ts";
 import { UnknownChannelError } from "../memory/memory-store.ts";
@@ -32,6 +35,9 @@ import { UnknownChannelError } from "../memory/memory-store.ts";
  *   GET  /v1/channels/{id}                       -> full channel memory
  *   GET  /v1/channels/{id}/episodes             -> episode summaries
  *   POST /v1/channels/{id}/episodes/{n}/publish  -> publish, returns a PublishRecord
+ *   POST /v1/channels/{id}/episodes/{n}/render   -> render a real MP4, returns the render result
+ *   GET  /v1/channels/{id}/episodes/{n}/render   -> render status/result (404 if not rendered)
+ *   GET  .../episodes/{n}/render/download        -> stream the MP4 (video/mp4) for preview
  *   POST /v1/channels/{id}/metrics              -> ingest metrics + run the learning loop
  *   GET  /v1/channels/{id}/insights             -> current learned insights
  *   GET  /v1/channels/{id}/schedule             -> next publish slot from the cadence
@@ -46,6 +52,8 @@ export interface ApiDeps {
   readonly quality?: QualityEngine | null;
   /** Where episodes publish (Module 6); defaults to an on-disk export target. */
   readonly publishTarget?: PublishTarget;
+  /** Root dir for rendered MP4s (local render pipeline); defaults to ".acf-renders". */
+  readonly rendersRoot?: string;
 }
 
 interface CreateEpisodeBody {
@@ -94,6 +102,7 @@ export function createApiServer(deps: ApiDeps): Server {
     deps.store,
     deps.publishTarget ?? new ExportPublishTarget(".acf-exports"),
   );
+  const renderer = new RenderService(deps.store, deps.rendersRoot ?? ".acf-renders");
 
   return createServer(async (req, res) => {
     try {
@@ -208,6 +217,41 @@ export function createApiServer(deps: ApiDeps): Server {
             if (!Number.isInteger(n) || n < 1) return sendError(res, 400, "episode number must be a positive integer");
             const record = await publishing.publish(channelId, n);
             return send(res, 201, record);
+          }
+
+          // .../episodes/{n}/render  (POST render, GET status, GET .../download stream)
+          if (parts[5] === "render") {
+            const n = Number(parts[4]);
+            if (!Number.isInteger(n) || n < 1) return sendError(res, 400, "episode number must be a positive integer");
+
+            if (method === "POST" && parts.length === 6) {
+              try {
+                const result = await renderer.render(channelId, n);
+                return send(res, 201, { ...result, download: `/v1/channels/${channelId}/episodes/${n}/render/download` });
+              } catch (e) {
+                if (e instanceof FfmpegNotInstalledError) return sendError(res, 503, e.message);
+                if (e instanceof UnknownChannelError) throw e;
+                return sendError(res, 422, e instanceof Error ? e.message : "render failed");
+              }
+            }
+            if (method === "GET" && parts.length === 6) {
+              const result = await renderer.getRender(channelId, n);
+              if (!result) return sendError(res, 404, `episode ${n} has not been rendered yet`);
+              return send(res, 200, { ...result, download: `/v1/channels/${channelId}/episodes/${n}/render/download` });
+            }
+            // GET .../render/download — stream the MP4 for preview/download
+            if (method === "GET" && parts.length === 7 && parts[6] === "download") {
+              const result = await renderer.getRender(channelId, n);
+              if (!result || !existsSync(result.outputPath)) return sendError(res, 404, "no rendered file");
+              const size = statSync(result.outputPath).size;
+              res.writeHead(200, {
+                "content-type": "video/mp4",
+                "content-length": size,
+                "content-disposition": `inline; filename="${channelId}-ep${n}.mp4"`,
+              });
+              createReadStream(result.outputPath).pipe(res);
+              return;
+            }
           }
         }
 

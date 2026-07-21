@@ -50,6 +50,23 @@ export interface Episode {
   readonly quality?: QualityReport;
   /** Which workflow produced this episode (Module 5); "standard" when unset by the caller. */
   readonly workflowId?: string;
+  /** Final rendered MP4 (local render pipeline), present after a successful render. The path
+   *  is a real file on disk; sources say whether media was AI-generated or procedural. */
+  readonly render?: {
+    readonly outputPath: string;
+    readonly sizeBytes: number;
+    readonly durationSec: number;
+    readonly hasVideo: boolean;
+    readonly hasAudio: boolean;
+    readonly videoCodec: string | undefined;
+    readonly audioCodec: string | undefined;
+    readonly width: number;
+    readonly height: number;
+    readonly imageSource: string;
+    readonly audioSource: string;
+    readonly musicSource: string;
+    readonly renderedAt: string;
+  };
   /** Multi-agent creative brief (Module 7), attached when the orchestrator runs with a crew.
    *  Structurally typed to keep the domain free of a dependency on the agents module. */
   readonly creativeBrief?: {

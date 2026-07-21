@@ -59,6 +59,24 @@ export { StoryPlanner } from "./orchestrator/story-planner.ts";
 export { EpisodeOrchestrator } from "./orchestrator/orchestrator.ts";
 export type { CreateEpisodeOptions, OrchestratorOptions, StageEvent } from "./orchestrator/orchestrator.ts";
 
+// Local render pipeline — real MP4 via FFmpeg.
+export {
+  checkFfmpeg,
+  checkFfprobe,
+  probeMedia,
+  FfmpegError,
+  FfmpegNotInstalledError,
+  FFMPEG_BIN,
+  FFPROBE_BIN,
+} from "./render/ffmpeg.ts";
+export type { MediaProbe } from "./render/ffmpeg.ts";
+export { LocalImageProvider, LocalSpeechProvider, LocalBackendUnavailableError, localBackendConfig } from "./render/local-backends.ts";
+export { AssetResolver } from "./render/asset-resolver.ts";
+export type { RenderPlan, RenderBeat, ImageSource, AudioSource, MusicSource } from "./render/asset-resolver.ts";
+export { FFmpegRenderer } from "./render/ffmpeg-renderer.ts";
+export { RenderService } from "./render/render-service.ts";
+export type { RenderResult } from "./render/render-service.ts";
+
 // Module 7 — multi-agent orchestrator.
 export type { Agent, AgentRole, AgentMessage, AgentContext } from "./agents/agent.ts";
 export { parseVerdict, extractField } from "./agents/agent.ts";

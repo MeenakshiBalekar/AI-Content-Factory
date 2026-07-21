@@ -99,6 +99,25 @@ duration, music stage removed). Channels can persist custom workflows in memory
 (`ChannelMemory.workflows`), which shadow built-ins by id; every episode records its
 `workflowId`. The future drag-and-drop editor is a UI over these same objects.
 
+## Local render pipeline → a real MP4 (FFmpeg)
+
+Turns an episode's assets into an actual playable `.mp4` using **local FFmpeg only — zero
+API calls**. Full guide: [`docs/ai-content-factory/RENDERING.md`](../../docs/ai-content-factory/RENDERING.md).
+
+```bash
+node src/cli.ts seed --dir .acf-memory
+node src/cli.ts create tiny-explorers --dir .acf-memory --number 4 --local
+node src/cli.ts render tiny-explorers 4 --dir .acf-memory --renders .acf-renders
+# -> .acf-renders/tiny-explorers-ep4/episode.mp4  (H.264+AAC, Ken Burns, xfade, burned subs)
+```
+
+Requires FFmpeg (`sudo apt-get install -y ffmpeg` / `brew install ffmpeg`). Point
+`ACF_IMAGE_BASE_URL` / `ACF_AUDIO_BASE_URL` at self-hosted AI servers for real frames/voice;
+without them you get real **procedural placeholder** frames + silent tracks (honestly
+labelled — the render result reports `imageSource`/`audioSource`/`musicSource`). API:
+`POST /v1/channels/{id}/episodes/{n}/render` and a `.../render/download` route that streams
+`video/mp4` for in-browser preview.
+
 ## Publishing, analytics & the learning loop (Module 6)
 
 The flywheel: **publish → measure → learn → the next episode is informed.**

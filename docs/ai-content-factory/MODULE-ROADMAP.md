@@ -150,6 +150,34 @@ Org/team/roles/permissions, billing/quota, provider & template marketplace, plug
 
 ---
 
+### ✅ Local Render Pipeline — real MP4 via FFmpeg  *(built, 9 new tests — 104 total)*
+The first genuinely playable output. Assembles an episode's assets into a real H.264/AAC
+`.mp4` with **local FFmpeg only, zero API calls** — closing the gap where `outputUri` values
+were placeholder strings with no file behind them.
+
+- `render/ffmpeg.ts`: binary discovery (`ACF_FFMPEG_BIN`/`ACF_FFPROBE_BIN`), `checkFfmpeg`,
+  `runFfmpeg`, `probeMedia` (ffprobe → streams + duration + size).
+- `FFmpegRenderer`: Ken Burns pan/zoom per beat, xfade transitions, per-beat audio concat,
+  optional music mix, burned-in subtitles, H.264/AAC, `+faststart` for web playback.
+- `AssetResolver`: resolves each beat to real files — real local-AI backend when
+  `ACF_IMAGE_BASE_URL`/`ACF_AUDIO_BASE_URL` are set, else honest **procedural placeholders**
+  (scene cards + silent tracks). Every result is tagged with its true source.
+- `LocalImageProvider`/`LocalSpeechProvider`: real self-hosted HTTP adapters that fail
+  honestly (`LocalBackendUnavailableError`) instead of silently faking output.
+- `RenderService`: render → **ffprobe validation (must have a video AND audio stream,
+  non-empty)** → persist `episode.render`. Never claims success without a valid file.
+- CLI `render <id> <n>`; API `POST/GET .../render` + a `.../render/download` stream
+  (`video/mp4`) for browser preview.
+- Tests are FFmpeg-guarded (skip when absent) so `npm test` stays green everywhere; CI
+  installs FFmpeg so they run. Proven here: a real 10.16s 1280×720 MP4 with video+audio.
+
+**Real vs. pending:** the MP4, encoding, effects, mix, subtitle burn, and validation are
+real now. Photoreal frames + real speech require a local image/TTS server (see
+[`RENDERING.md`](./RENDERING.md)); until then, procedural placeholders keep the pipeline
+end-to-end and honest.
+
+---
+
 ## Principle
 
 > Build one module at a time, keep the architecture constant, and never merge a module that

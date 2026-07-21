@@ -11,6 +11,7 @@ import { QualityEngine } from "./quality/quality-engine.ts";
 import { BUILTIN_WORKFLOWS, resolveWorkflow } from "./workflow/builtin-workflows.ts";
 import type { WorkflowDefinition } from "./workflow/workflow.ts";
 import { buildCreativeCrew } from "./agents/crew-factory.ts";
+import { RenderService } from "./render/render-service.ts";
 import { AnalyticsService } from "./analytics/analytics-service.ts";
 import type { EpisodeMetrics } from "./analytics/metrics.ts";
 import { PublishingService } from "./publishing/publishing-service.ts";
@@ -58,6 +59,7 @@ async function main(): Promise<number> {
       workflow: { type: "string" },
       metrics: { type: "string" },
       exports: { type: "string", default: ".acf-exports" },
+      renders: { type: "string", default: ".acf-renders" },
     },
   });
 
@@ -80,6 +82,24 @@ async function main(): Promise<number> {
       console.log("Built-in workflows:");
       for (const w of BUILTIN_WORKFLOWS) {
         console.log(`  ${w.id.padEnd(10)} ${w.name} — ${w.description} (${w.stages.length} stages)`);
+      }
+      return 0;
+    }
+
+    case "render": {
+      // Assemble the episode's assets into a real, playable MP4 with local FFmpeg.
+      if (!arg || !positionals[2]) return usage("render <channelId> <episodeNumber>");
+      const svc = new RenderService(store, values.renders as string);
+      const r = await svc.render(asChannelId(arg), Number(positionals[2]));
+      const mb = (r.sizeBytes / 1_048_576).toFixed(2);
+      console.log(`✓ Rendered episode ${positionals[2]}`);
+      console.log(`  path:     ${r.outputPath}`);
+      console.log(`  size:     ${mb} MB (${r.sizeBytes} bytes)`);
+      console.log(`  duration: ${r.durationSec.toFixed(2)}s`);
+      console.log(`  streams:  video=${r.videoCodec} ${r.width}x${r.height}, audio=${r.audioCodec}`);
+      console.log(`  sources:  images=${r.imageSource}, audio=${r.audioSource}, music=${r.musicSource}`);
+      if (r.imageSource !== "ai-local" || r.audioSource !== "ai-local") {
+        console.log(`  note:     set ACF_IMAGE_BASE_URL / ACF_AUDIO_BASE_URL to a local AI server for real generation.`);
       }
       return 0;
     }
@@ -227,7 +247,7 @@ async function main(): Promise<number> {
 
     default:
       return usage(
-        "seed | channels | providers | workflows | memory <id> | create <id> | " +
+        "seed | channels | providers | workflows | memory <id> | create <id> | render <id> <n> | " +
           "publish <id> <n> | metrics <id> | insights <id> | schedule <id> | serve",
       );
   }

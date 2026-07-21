@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Install FFmpeg (for the local render pipeline tests)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Test (zero-dependency runtime)
         run: node --test --experimental-strip-types
       - name: Install dev tooling
