@@ -60,9 +60,9 @@ async function main(): Promise<number> {
   switch (command) {
     case "providers": {
       const { report } = buildProviderRegistry({ forceLocal: values.local as boolean });
-      console.log("Provider wiring (local = free/offline placeholder, others cost money):");
+      console.log("Provider wiring (self-hosted = our own inference servers; offline = free placeholder):");
       for (const [cap, name] of Object.entries(report)) {
-        console.log(`  ${cap.padEnd(6)} → ${name}${name === "local" ? "  (free)" : "  ($$)"}`);
+        console.log(`  ${cap.padEnd(6)} → ${name}`);
       }
       return 0;
     }

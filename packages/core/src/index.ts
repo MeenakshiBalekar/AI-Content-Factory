@@ -25,21 +25,29 @@ export { PromptComposer } from "./prompt/prompt-composer.ts";
 export * from "./providers/provider.ts";
 export { LocalProvider } from "./providers/local-provider.ts";
 
-// Module 2 — real provider adapters and wiring.
+// Module 2 (revised: self-hosted-first) — provider adapters and wiring.
 export { HttpClient, ProviderError, DEFAULT_RETRY } from "./providers/http/http-client.ts";
 export type { RetryPolicy, HttpRequest, HttpClientOptions } from "./providers/http/http-client.ts";
 export { loadProvidersConfig } from "./providers/http/config.ts";
 export type {
   ProvidersConfig,
-  OpenAITextConfig,
-  OpenAIImageConfig,
+  ProviderMode,
+  ChatTextConfig,
+  ImageGenConfig,
+  SpeechConfig,
   ElevenLabsConfig,
   AsyncVideoConfig,
 } from "./providers/http/config.ts";
-export { OpenAITextProvider } from "./providers/openai-text-provider.ts";
-export { OpenAIImageProvider } from "./providers/openai-image-provider.ts";
+export { ChatCompletionsTextProvider } from "./providers/chat-completions-text-provider.ts";
+export { ImagesApiImageProvider } from "./providers/images-api-image-provider.ts";
+export { SpeechApiAudioProvider } from "./providers/speech-api-audio-provider.ts";
 export { ElevenLabsAudioProvider } from "./providers/elevenlabs-audio-provider.ts";
 export { AsyncVideoProvider } from "./providers/async-video-provider.ts";
+export type {
+  MusicGenerationProvider,
+  LipSyncProvider,
+  TranscriptionProvider,
+} from "./providers/future-providers.ts";
 export { buildProviderRegistry } from "./providers/factory.ts";
 export type { BuildOptions, BuildResult, ProviderReport } from "./providers/factory.ts";
 export { FileObjectStore } from "./storage/object-store.ts";

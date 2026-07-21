@@ -103,25 +103,38 @@ exists) → L3 per-character LoRA/embedding → L4 automated QA rejection loop.
 
 ---
 
-## 4. Provider system
+## 4. Provider system — SELF-HOSTED FIRST (revised)
 
-Every vendor is an adapter behind a capability interface. The orchestrator depends only on
-the interface; `ProviderRegistry` resolves capability → concrete provider and is the future
-home of routing policy.
+> **Policy revision:** the platform never depends on commercial AI APIs. Every capability
+> is served by open-source foundation models on our own GPU infrastructure; the long-term
+> objective is to own 100% of the inference stack. Model choices, serving stacks, and GPU
+> sizing: [`SELF-HOSTED-STACK.md`](./SELF-HOSTED-STACK.md).
 
-- **Text**: OpenAI, Anthropic (Claude), Gemini, Genmax `generate_text`.
-- **Image**: FLUX, Seedream, Nano Banana (Genmax `generate_image`), Replicate, Fal.
-- **Audio/Voice**: ElevenLabs, Cartesia, PlayHT, Genmax `generate_audio`; Music: Suno, Udio.
-- **Video**: Runway, Kling, Veo, Pika, Luma, Hailuo, Genmax `generate_video`.
-- **Assembly/storage**: FFmpeg, Remotion, Cloudinary, S3-compatible.
+Every provider is an adapter behind a capability interface, and every adapter speaks an
+**open protocol**, not a vendor SDK. The orchestrator depends only on the interfaces;
+`ProviderRegistry` resolves capability → concrete provider and remains the routing seam.
 
-Adapter contract: pure translation between our request/response types and the vendor SDK,
-plus a `name`, health check, and cost/latency metadata. No business logic in adapters.
+- **Text** — `ChatCompletionsTextProvider` → vLLM / Ollama serving Llama 3.x, Qwen 2.5,
+  Mistral (`/v1/chat/completions`, keyless).
+- **Image** — `ImagesApiImageProvider` → LocalAI / SD-WebUI bridges serving FLUX.1, SDXL,
+  SD 3.5 (`/v1/images/generations`, keyless).
+- **Speech** — `SpeechApiAudioProvider` → Kokoro-FastAPI / Speaches / LocalAI serving
+  Kokoro-82M, Coqui XTTS-v2 (voice cloning), Piper (`/v1/audio/speech`, keyless).
+- **Video** — `AsyncVideoProvider` → **our own render queue** (submit → poll protocol) in
+  front of ComfyUI workers running LTX-Video, Wan 2.1, HunyuanVideo, CogVideoX.
+- **Future integrations** (interfaces fixed in `providers/future-providers.ts`, adapters
+  land when the serving stack settles): `MusicGenerationProvider` (MusicGen, Stable Audio
+  Open), `LipSyncProvider` (Wav2Lip, LatentSync), `TranscriptionProvider`
+  (Whisper/faster-whisper). No commercial API will ever back these interfaces.
 
-> **Session note:** the Genmax MCP tools (`generate_text/image/audio/video`) are live to the
-> agent and were used to validate that the composed prompts drive real generation. A Node
-> process cannot call MCP tools directly, so a production Genmax adapter is HTTP-based; the
-> interface it implements is already defined in `providers/provider.ts`.
+Commercial endpoints that speak the same open protocols still function through the same
+adapters when *explicitly* configured (tagged `[commercial]` in the provider report) — a
+legacy escape hatch, never a dependency, never chosen over a configured self-hosted
+endpoint.
+
+Owning inference *strengthens* the §3 consistency guarantees: exact sampler/seed control,
+per-character LoRAs (consistency level L3) that closed APIs cannot offer, and channel
+voices as model files we own rather than vendor voice-ids that can be deprecated.
 
 ---
 

@@ -99,28 +99,32 @@ duration, music stage removed). Channels can persist custom workflows in memory
 (`ChannelMemory.workflows`), which shadow built-ins by id; every episode records its
 `workflowId`. The future drag-and-drop editor is a UI over these same objects.
 
-## Real providers (Module 2)
+## Providers — self-hosted first (Module 2, revised)
 
-By default every capability uses the free offline `LocalProvider`. Set the env vars below to
-route a capability to a real model — anything unset stays free/offline. Check what's wired:
+**The platform never depends on commercial AI APIs.** Every adapter speaks an open protocol
+served by your own GPU infrastructure (vLLM/Ollama, LocalAI, Kokoro-FastAPI, our ComfyUI
+render queue) — keyless by default. Full stack guide:
+[`docs/ai-content-factory/SELF-HOSTED-STACK.md`](../../docs/ai-content-factory/SELF-HOSTED-STACK.md).
 
 ```bash
-node src/cli.ts providers                         # shows text/image/audio/video → provider ($$ or free)
-node src/cli.ts create tiny-explorers --local     # force free/offline regardless of env
+node src/cli.ts providers                         # shows wiring: [self-hosted] / [commercial] / [offline]
+node src/cli.ts create tiny-explorers --local     # force free offline placeholders
 ```
 
-| Capability | Env vars | Provider |
+| Capability | Self-hosted env | Serves |
 | --- | --- | --- |
-| Text | `OPENAI_API_KEY` (`OPENAI_BASE_URL`, `ACF_TEXT_MODEL`) | OpenAI-compatible chat (Azure/Together/Groq/…) |
-| Image | `OPENAI_API_KEY` (`ACF_IMAGE_MODEL`) | OpenAI Images → bytes stored via `ObjectStore` |
-| Audio | `ELEVENLABS_API_KEY` (`ACF_TTS_MODEL`) | ElevenLabs TTS (locked voice id per character) |
-| Video | `ACF_VIDEO_API_KEY` + `ACF_VIDEO_SUBMIT_URL` + `ACF_VIDEO_STATUS_URL` | Async submit→poll (Veo/Runway/Kling/Genmax shape) |
+| Text | `ACF_TEXT_BASE_URL` (+`ACF_TEXT_MODEL`) | vLLM / Ollama — Llama, Qwen, Mistral |
+| Image | `ACF_IMAGE_BASE_URL` (+`ACF_IMAGE_MODEL`) | LocalAI / SD-WebUI — FLUX.1, SDXL |
+| Speech | `ACF_SPEECH_BASE_URL` (+`ACF_SPEECH_MODEL`) | Kokoro-FastAPI / Speaches / XTTS |
+| Video | `ACF_VIDEO_SUBMIT_URL` + `ACF_VIDEO_STATUS_URL` | Our render queue → ComfyUI (LTX/Wan) |
 
-> ⚠️ **Real providers cost money per generation.** The `LocalProvider` is free only because it
-> emits placeholder URIs, not real media. The `providers` command marks billable capabilities.
+Commercial keys (`OPENAI_API_KEY`, `ELEVENLABS_API_KEY`) remain as explicit legacy
+fallbacks through the same interfaces — never required, never preferred over a configured
+self-hosted endpoint. Music/lip-sync/transcription are **future-integration interfaces**
+(`providers/future-providers.ts`) awaiting a settled open-source serving stack.
 
-The orchestrator is **unchanged** between offline and real runs — only the registry wiring in
-`providers/factory.ts` differs.
+The orchestrator is **unchanged** between offline and real runs — only the registry wiring
+in `providers/factory.ts` differs.
 
 ## Architecture
 

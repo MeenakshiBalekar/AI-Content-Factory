@@ -12,11 +12,13 @@ interface StatusResponse {
 }
 
 /**
- * VideoProvider for the near-universal async "handle" flow used by Veo, Runway, Kling, Genmax
- * and others: POST a job, get an id, then poll a status endpoint until the render is ready.
- * This is where minutes-long renders are handled without blocking — the orchestrator awaits
- * one call and the polling is internal. The hosted result URL is returned as-is (provider CDNs
- * host the mp4), so no download step is required.
+ * VideoProvider for the async "handle" flow: POST a job, get an id, poll a status endpoint
+ * until the render is ready. This is the protocol of OUR OWN render queue — a thin service
+ * in front of ComfyUI workers running open-weights video models (LTX-Video, Wan 2.1,
+ * HunyuanVideo, CogVideoX) on our GPUs. Minutes-long renders don't block: the orchestrator
+ * awaits one call and the polling is internal. The API key is optional (auth on our own
+ * queue, if any). Commercial endpoints that use the same submit/poll shape also fit through
+ * this adapter, but nothing depends on them.
  */
 export class AsyncVideoProvider implements VideoProvider {
   readonly name = "async-video";
@@ -34,7 +36,7 @@ export class AsyncVideoProvider implements VideoProvider {
     const submit = await this.#http.requestJson<SubmitResponse>({
       method: "POST",
       url: this.#cfg.submitUrl,
-      headers: { authorization: `Bearer ${this.#cfg.apiKey}` },
+      ...(this.#cfg.apiKey ? { headers: { authorization: `Bearer ${this.#cfg.apiKey}` } } : {}),
       body: {
         model: this.#cfg.model,
         prompt: req.prompt,
@@ -57,7 +59,7 @@ export class AsyncVideoProvider implements VideoProvider {
       const status = await this.#http.requestJson<StatusResponse>({
         method: "GET",
         url: statusUrl,
-        headers: { authorization: `Bearer ${this.#cfg.apiKey}` },
+        ...(this.#cfg.apiKey ? { headers: { authorization: `Bearer ${this.#cfg.apiKey}` } } : {}),
       });
 
       if (status.status === "succeeded") {

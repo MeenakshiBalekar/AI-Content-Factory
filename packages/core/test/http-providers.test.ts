@@ -6,8 +6,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HttpClient, ProviderError } from "../src/providers/http/http-client.ts";
-import { OpenAITextProvider } from "../src/providers/openai-text-provider.ts";
-import { OpenAIImageProvider } from "../src/providers/openai-image-provider.ts";
+import { ChatCompletionsTextProvider } from "../src/providers/chat-completions-text-provider.ts";
+import { ImagesApiImageProvider } from "../src/providers/images-api-image-provider.ts";
+import { SpeechApiAudioProvider } from "../src/providers/speech-api-audio-provider.ts";
 import { ElevenLabsAudioProvider } from "../src/providers/elevenlabs-audio-provider.ts";
 import { AsyncVideoProvider } from "../src/providers/async-video-provider.ts";
 import { FileObjectStore } from "../src/storage/object-store.ts";
@@ -60,30 +61,53 @@ async function withTmp(fn: (dir: string) => Promise<void>): Promise<void> {
   }
 }
 
-test("OpenAITextProvider sends auth + chat body and parses the completion", async () => {
+test("ChatCompletionsTextProvider works KEYLESS against a self-hosted server (vLLM/Ollama shape)", async () => {
   const mock = await mockServer((req, res, _body, calls) => {
     void calls;
     res.setHeader("content-type", "application/json");
     res.end(JSON.stringify({ choices: [{ message: { content: "Once upon a time..." } }] }));
   });
   try {
-    const provider = new OpenAITextProvider({ apiKey: "sk-test", baseUrl: mock.base, model: "gpt-4o-mini" });
+    const provider = new ChatCompletionsTextProvider({
+      baseUrl: mock.base,
+      model: "llama3.1:8b",
+      mode: "self-hosted",
+    });
     const out = await provider.generateText({ prompt: "write a story", system: "be kind" });
     assert.equal(out, "Once upon a time...");
 
     const call = mock.calls[0]!;
     assert.equal(call.method, "POST");
     assert.equal(call.url, "/v1/chat/completions");
-    assert.equal(call.headers["authorization"], "Bearer sk-test");
+    assert.equal(call.headers["authorization"], undefined, "no auth header when keyless");
     const sent = JSON.parse(call.body) as { model: string; messages: { role: string }[] };
-    assert.equal(sent.model, "gpt-4o-mini");
+    assert.equal(sent.model, "llama3.1:8b");
     assert.deepEqual(sent.messages.map((m) => m.role), ["system", "user"]);
   } finally {
     await mock.close();
   }
 });
 
-test("OpenAIImageProvider decodes base64 and persists real bytes to the object store", async () => {
+test("ChatCompletionsTextProvider sends auth only when a key is configured", async () => {
+  const mock = await mockServer((_req, res) => {
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ choices: [{ message: { content: "ok" } }] }));
+  });
+  try {
+    const provider = new ChatCompletionsTextProvider({
+      baseUrl: mock.base,
+      model: "m",
+      apiKey: "secret",
+      mode: "commercial",
+    });
+    await provider.generateText({ prompt: "x" });
+    assert.equal(mock.calls[0]!.headers["authorization"], "Bearer secret");
+  } finally {
+    await mock.close();
+  }
+});
+
+test("ImagesApiImageProvider (keyless, FLUX on LocalAI shape) persists bytes to the object store", async () => {
   await withTmp(async (dir) => {
     const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
     const mock = await mockServer((_req, res) => {
@@ -91,19 +115,57 @@ test("OpenAIImageProvider decodes base64 and persists real bytes to the object s
       res.end(JSON.stringify({ data: [{ b64_json: pngBytes.toString("base64") }] }));
     });
     try {
-      const provider = new OpenAIImageProvider(
-        { apiKey: "sk", baseUrl: mock.base, model: "gpt-image-1" },
+      const provider = new ImagesApiImageProvider(
+        { baseUrl: mock.base, model: "flux.1-schnell", mode: "self-hosted" },
         new FileObjectStore(dir),
       );
       const asset = await provider.generateImage({ prompt: "Milo the fox", seed: 42, aspect: "16:9" });
-      assert.equal(asset.provider, "openai-image");
+      assert.equal(asset.provider, "images-api");
       assert.ok(asset.outputUri.startsWith("file://"));
       const path = fileURLToPath(asset.outputUri);
       const written = await readFile(path);
       assert.deepEqual(new Uint8Array(written), new Uint8Array(pngBytes));
+      const call = mock.calls[0]!;
+      assert.equal(call.headers["authorization"], undefined, "keyless");
       // aspect 16:9 must request a landscape size
-      const sent = JSON.parse(mock.calls[0]!.body) as { size: string };
+      const sent = JSON.parse(call.body) as { size: string };
       assert.equal(sent.size, "1536x1024");
+    } finally {
+      await mock.close();
+    }
+  });
+});
+
+test("SpeechApiAudioProvider posts to /v1/audio/speech keyless with the locked voice", async () => {
+  await withTmp(async (dir) => {
+    const audio = Buffer.from("ID3kokoro-mp3");
+    const mock = await mockServer((_req, res) => {
+      res.setHeader("content-type", "audio/mpeg");
+      res.end(audio);
+    });
+    try {
+      const provider = new SpeechApiAudioProvider(
+        { baseUrl: mock.base, model: "kokoro", mode: "self-hosted" },
+        new FileObjectStore(dir),
+      );
+      const asset = await provider.generateAudio({
+        text: "Let's find out!",
+        voiceRef: "voice:warm-child-male-01",
+        pitch: 3,
+        speed: 1.05,
+        emotion: "excited",
+      });
+      const written = await readFile(fileURLToPath(asset.outputUri));
+      assert.deepEqual(new Uint8Array(written), new Uint8Array(audio));
+
+      const call = mock.calls[0]!;
+      assert.equal(call.url, "/v1/audio/speech");
+      assert.equal(call.headers["authorization"], undefined, "keyless");
+      const sent = JSON.parse(call.body) as { model: string; voice: string; input: string; speed: number };
+      assert.equal(sent.model, "kokoro");
+      assert.equal(sent.voice, "voice:warm-child-male-01");
+      assert.equal(sent.input, "Let's find out!");
+      assert.equal(sent.speed, 1.05);
     } finally {
       await mock.close();
     }
@@ -161,12 +223,12 @@ test("AsyncVideoProvider submits a job then polls until it succeeds", async () =
   });
   try {
     const provider = new AsyncVideoProvider({
-      apiKey: "vk",
       submitUrl: `${mock.base}/submit`,
       statusUrlTemplate: `${mock.base}/status/{id}`,
-      model: "veo-3.1-fast",
+      model: "ltx-video",
       pollIntervalMs: 1,
       maxPollMs: 5000,
+      mode: "self-hosted",
     });
     const asset = await provider.generateVideo({ prompt: "scene", seed: 7, aspect: "16:9", durationSec: 8 });
     assert.equal(asset.outputUri, "https://cdn.example/job-123.mp4");
@@ -190,12 +252,12 @@ test("AsyncVideoProvider surfaces a failed job as a non-retryable ProviderError"
   });
   try {
     const provider = new AsyncVideoProvider({
-      apiKey: "vk",
       submitUrl: `${mock.base}/submit`,
       statusUrlTemplate: `${mock.base}/status/{id}`,
       model: "m",
       pollIntervalMs: 1,
       maxPollMs: 5000,
+      mode: "self-hosted",
     });
     await assert.rejects(
       () => provider.generateVideo({ prompt: "x", seed: 1, aspect: "16:9", durationSec: 4 }),
