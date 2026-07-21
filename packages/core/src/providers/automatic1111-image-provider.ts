@@ -19,8 +19,6 @@ export interface Automatic1111Config {
   readonly steps: number;
   readonly cfgScale: number;
   readonly negativePrompt: string;
-  /** Optional model/checkpoint name; Draw Things ignores it (uses the app's loaded model). */
-  readonly model?: string | undefined;
   readonly maxEdge: number; // longest side cap, e.g. 768
 }
 
@@ -70,6 +68,8 @@ export class Automatic1111ImageProvider implements ImageProvider {
       method: "POST",
       url: `${this.#cfg.baseUrl}/sdapi/v1/txt2img`,
       timeoutMs: 300_000,
+      // Minimal payload of keys Draw Things accepts. It validates strictly and 422s on
+      // unrecognized keys (e.g. A1111's save_images/send_images), so we send only these.
       body: {
         prompt: req.prompt,
         negative_prompt: this.#cfg.negativePrompt,
@@ -78,11 +78,6 @@ export class Automatic1111ImageProvider implements ImageProvider {
         width,
         height,
         seed: req.seed,
-        batch_size: 1,
-        n_iter: 1,
-        send_images: true,
-        save_images: false,
-        ...(this.#cfg.model ? { override_settings: { sd_model_checkpoint: this.#cfg.model } } : {}),
       },
     });
 

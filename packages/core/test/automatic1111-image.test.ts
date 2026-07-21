@@ -98,14 +98,22 @@ test("Automatic1111ImageProvider posts txt2img with prompt/seed/size and stores 
       assert.deepEqual(new Uint8Array(bytes), new Uint8Array(PNG_1x1));
 
       const call = srv.calls.find((c) => c.url === "/sdapi/v1/txt2img")!;
-      const sent = JSON.parse(call.body) as { prompt: string; seed: number; steps: number; width: number; height: number; negative_prompt: string };
-      assert.match(sent.prompt, /Milo/);
-      assert.match(sent.prompt, /Bea/);
-      assert.equal(sent.seed, 123);
-      assert.equal(sent.steps, 24);
-      assert.equal(sent.width, 768);
-      assert.equal(sent.height, 448);
-      assert.equal(sent.negative_prompt, "blurry");
+      const sent = JSON.parse(call.body) as Record<string, unknown>;
+      assert.match(sent["prompt"] as string, /Milo/);
+      assert.match(sent["prompt"] as string, /Bea/);
+      assert.equal(sent["seed"], 123);
+      assert.equal(sent["steps"], 24);
+      assert.equal(sent["width"], 768);
+      assert.equal(sent["height"], 448);
+      assert.equal(sent["negative_prompt"], "blurry");
+
+      // Draw Things 422s on unrecognized keys — the payload must contain ONLY supported keys.
+      const allowed = new Set(["prompt", "negative_prompt", "steps", "cfg_scale", "width", "height", "seed"]);
+      const sentKeys = Object.keys(sent);
+      for (const k of sentKeys) assert.ok(allowed.has(k), `unexpected payload key "${k}"`);
+      assert.ok(!("save_images" in sent), "save_images must not be sent");
+      assert.ok(!("send_images" in sent), "send_images must not be sent");
+      assert.ok(!("batch_size" in sent) && !("n_iter" in sent), "no batch_size/n_iter");
     } finally {
       await srv.close();
     }
