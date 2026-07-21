@@ -10,9 +10,14 @@ import { createApiServer, listen } from "./api/server.ts";
 import { QualityEngine } from "./quality/quality-engine.ts";
 import { BUILTIN_WORKFLOWS, resolveWorkflow } from "./workflow/builtin-workflows.ts";
 import type { WorkflowDefinition } from "./workflow/workflow.ts";
+import { AnalyticsService } from "./analytics/analytics-service.ts";
+import type { EpisodeMetrics } from "./analytics/metrics.ts";
+import { PublishingService } from "./publishing/publishing-service.ts";
+import { ExportPublishTarget } from "./publishing/publish-target.ts";
 import { sampleChannel } from "./examples/sample-channel.ts";
 import { asChannelId } from "./domain/ids.ts";
 import type { EpisodeAsset } from "./domain/episode.ts";
+import { readFile } from "node:fs/promises";
 
 /**
  * Reference CLI for the episode kernel. Providers are chosen from the environment: set
@@ -49,6 +54,8 @@ async function main(): Promise<number> {
       local: { type: "boolean", default: false },
       "no-quality": { type: "boolean", default: false },
       workflow: { type: "string" },
+      metrics: { type: "string" },
+      exports: { type: "string", default: ".acf-exports" },
     },
   });
 
@@ -72,6 +79,45 @@ async function main(): Promise<number> {
       for (const w of BUILTIN_WORKFLOWS) {
         console.log(`  ${w.id.padEnd(10)} ${w.name} — ${w.description} (${w.stages.length} stages)`);
       }
+      return 0;
+    }
+
+    case "metrics": {
+      // Ingest performance metrics and run the learning loop.
+      if (!arg) return usage("metrics <channelId> --metrics <file.json>");
+      if (!values.metrics) return fail("provide --metrics <file.json> (array of EpisodeMetrics)");
+      const rows = JSON.parse(await readFile(values.metrics as string, "utf8")) as EpisodeMetrics[];
+      const { insights, applied } = await new AnalyticsService(store).ingest(asChannelId(arg), rows);
+      if (values.json) { console.log(JSON.stringify(insights, null, 2)); return 0; }
+      console.log(`✓ Ingested ${rows.length} metric row(s); learnings ${applied ? "applied" : "not applied (no matching episodes)"}.`);
+      console.log(`  sampled ${insights.sampled} episode(s), avg view duration ${insights.avgViewDurationSec}s`);
+      if (insights.bestHooks.length) console.log(`  best hooks: ${insights.bestHooks.map((h) => `"${h}"`).join(" | ")}`);
+      for (const n of insights.notes) console.log(`  • ${n}`);
+      return 0;
+    }
+
+    case "insights": {
+      if (!arg) return usage("insights <channelId>");
+      const insights = await new AnalyticsService(store).insights(asChannelId(arg));
+      console.log(JSON.stringify(insights, null, 2));
+      return 0;
+    }
+
+    case "publish": {
+      if (!arg || !positionals[2]) return usage("publish <channelId> <episodeNumber>");
+      const target = new ExportPublishTarget(values.exports as string);
+      const record = await new PublishingService(store, target).publish(asChannelId(arg), Number(positionals[2]));
+      console.log(`✓ Published episode ${positionals[2]} → ${record.uri}`);
+      return 0;
+    }
+
+    case "schedule": {
+      if (!arg) return usage("schedule <channelId>");
+      const target = new ExportPublishTarget(values.exports as string);
+      const next = await new PublishingService(store, target).nextSlot(asChannelId(arg));
+      const mem = await store.load(asChannelId(arg));
+      console.log(`cadence: ${mem?.channel.schedule.cadence}`);
+      console.log(`next publish: ${next.toISOString()}`);
       return 0;
     }
 
@@ -174,7 +220,10 @@ async function main(): Promise<number> {
     }
 
     default:
-      return usage("seed | channels | providers | workflows | memory <id> | create <id> | serve");
+      return usage(
+        "seed | channels | providers | workflows | memory <id> | create <id> | " +
+          "publish <id> <n> | metrics <id> | insights <id> | schedule <id> | serve",
+      );
   }
 }
 

@@ -172,9 +172,19 @@ export class EpisodeOrchestrator {
     const { composer, beats } = ctx;
     switch (stage.kind) {
       case "story": {
-        const prompt = `Channel: ${ctx.memory.channel.premise}\nAudience: ${ctx.memory.channel.audience}\nPrevious: ${ctx.memory.episodes.at(-1)?.title ?? "none"}\nPlan episode ${ctx.episodeNumber}: ${ctx.logline}`;
+        // Close the learning loop: proven hooks (written into ChannelPerformance by the
+        // analytics module from real metrics) steer the next episode's opening.
+        const perf = ctx.memory.channel.performance;
+        const provenHooks = perf.bestHooks.length
+          ? `\nProven high-retention hooks to emulate: ${perf.bestHooks.map((h) => `"${h}"`).join("; ")}` +
+            (perf.avgViewDurationSec ? `\nChannel avg view duration: ${perf.avgViewDurationSec}s — front-load the payoff.` : "")
+          : "";
+        const prompt =
+          `Channel: ${ctx.memory.channel.premise}\nAudience: ${ctx.memory.channel.audience}\n` +
+          `Previous: ${ctx.memory.episodes.at(-1)?.title ?? "none"}${provenHooks}\n` +
+          `Plan episode ${ctx.episodeNumber}: ${ctx.logline}`;
         const text = await this.#registry.text().generateText({ prompt, maxTokens: 400 });
-        return [this.#ok(stage, "Story outline", prompt, this.#registry.text().name, { chars: text.length })];
+        return [this.#ok(stage, "Story outline", prompt, this.#registry.text().name, { chars: text.length, learnedHooks: perf.bestHooks.length })];
       }
       case "script": {
         const prompt = beats

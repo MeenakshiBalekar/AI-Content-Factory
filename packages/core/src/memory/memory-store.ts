@@ -4,6 +4,8 @@ import type { Environment } from "../domain/environment.ts";
 import type { Episode } from "../domain/episode.ts";
 import type { VoiceProfile } from "../domain/voice.ts";
 import type { WorkflowDefinition } from "../workflow/workflow.ts";
+import type { EpisodeMetrics } from "../analytics/metrics.ts";
+import type { PublishRecord } from "../publishing/publish-target.ts";
 import type {
   ChannelId,
   CharacterId,
@@ -20,6 +22,10 @@ export interface ChannelMemory {
   /** Channel-specific workflow definitions (Module 5). Shadow built-ins by id. */
   readonly workflows?: Readonly<Record<string, WorkflowDefinition>>;
   readonly episodes: readonly Episode[];
+  /** Ingested performance metrics per episode (Module 6). */
+  readonly metrics?: readonly EpisodeMetrics[];
+  /** Publication records per episode number (Module 6). */
+  readonly publications?: Readonly<Record<number, readonly PublishRecord[]>>;
 }
 
 /**

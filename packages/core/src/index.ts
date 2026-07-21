@@ -59,6 +59,18 @@ export { StoryPlanner } from "./orchestrator/story-planner.ts";
 export { EpisodeOrchestrator } from "./orchestrator/orchestrator.ts";
 export type { CreateEpisodeOptions, OrchestratorOptions, StageEvent } from "./orchestrator/orchestrator.ts";
 
+// Module 6 — publishing, analytics & the learning loop.
+export { ExportPublishTarget } from "./publishing/publish-target.ts";
+export type { PublishTarget, PublishRecord, ExportManifest } from "./publishing/publish-target.ts";
+export { parseCadence, nextPublishAt, CadenceParseError } from "./publishing/scheduler.ts";
+export type { ParsedCadence } from "./publishing/scheduler.ts";
+export { PublishingService } from "./publishing/publishing-service.ts";
+export { validateMetrics, mergeMetrics } from "./analytics/metrics.ts";
+export type { EpisodeMetrics } from "./analytics/metrics.ts";
+export { computeInsights, applyLearnings } from "./analytics/insights.ts";
+export type { ChannelInsights, EpisodeInsight } from "./analytics/insights.ts";
+export { AnalyticsService } from "./analytics/analytics-service.ts";
+
 // Module 5 — workflow engine.
 export {
   CAPABILITY_FOR_KIND,

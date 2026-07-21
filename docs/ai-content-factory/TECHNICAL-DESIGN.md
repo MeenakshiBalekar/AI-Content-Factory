@@ -160,21 +160,27 @@ over the same stage list.
 
 ---
 
-## 7. Quality engine (roadmap, Module 4)
+## 7. Quality engine (Module 4 — built)
 
-Subscribes to `stage.succeeded`, inspects each asset, and can reject → regenerate:
-character-consistency check (compare against `identityFragment` / reference), blur/framing,
-lip-sync alignment, subtitle accuracy, audio quality, hook strength, safety/copyright. On
-rejection it re-enqueues the stage with an adjusted prompt or a different provider tier.
+Inspects each stage's assets and can reject → regenerate within an attempt budget:
+identity-consistency (locked fragment + style present in every visual prompt), completeness,
+SRT validity, voice coverage, thumbnail/metadata. Findings + attempts are persisted on the
+episode; budget-exhaustion fails honestly (`quality.passed: false`). Vision-model inspectors
+(blur, framing, lip-sync) plug into the same `Inspector` interface (Module 4.1).
 
 ---
 
-## 8. Analytics & the learning loop (roadmap, Module 6)
+## 8. Analytics & the learning loop (Module 6 — built)
 
-Ingests CTR, watch time, AVD, retention, revenue per platform, writes back into
-`ChannelPerformance.bestHooks` and pacing notes — which the `StoryPlanner`/orchestrator
-already read. The loop is closed by design: performance is memory, and memory drives the
-next episode.
+`AnalyticsService.ingest` merges `EpisodeMetrics`, `computeInsights` correlates them with the
+episodes that produced them and ranks by retention, and `applyLearnings` writes winning hooks
++ avg-view-duration into `ChannelPerformance`. The orchestrator's story stage reads
+`bestHooks` and injects them into the next episode's prompt — **the loop is closed and
+tested**: performance is memory, and memory drives the next episode. Publishing
+(`ExportPublishTarget`) emits a platform-ready package and records each publication; the
+scheduler computes the next slot from the channel cadence (IANA tz + DST, zero deps). Real
+platform upload targets (YouTube resumable upload) are a future integration gated on
+credential management (Module 8) — a free-quota platform API, never a paid AI API.
 
 ---
 

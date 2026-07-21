@@ -180,3 +180,66 @@ test("GET /v1/jobs/{id} 404s for unknown job; unknown route 404s", async () => {
     await api.close();
   }
 });
+
+async function createEpisode(base: string, num: number): Promise<void> {
+  const res = await fetch(`${base}/v1/channels/tiny-explorers/episodes`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ number: num }),
+  });
+  const { poll } = (await res.json()) as { poll: string };
+  for (let i = 0; i < 100; i++) {
+    const job = (await getJson<{ state: string }>(`${base}${poll}`)).body;
+    if (job.state === "succeeded" || job.state === "failed") return;
+    await new Promise((r) => setTimeout(r, 20));
+  }
+}
+
+test("Module 6: metrics ingest -> insights -> schedule over the API", async () => {
+  const api = await startApi();
+  try {
+    await createEpisode(api.base, 1);
+    await createEpisode(api.base, 2);
+
+    // Ingest metrics; episode 2 is the retention winner.
+    const res = await fetch(`${api.base}/v1/channels/tiny-explorers/metrics`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        metrics: [
+          { episodeNumber: 1, views: 500, avgViewDurationSec: 40, measuredAt: "2026-07-19T00:00:00Z" },
+          { episodeNumber: 2, views: 500, avgViewDurationSec: 150, measuredAt: "2026-07-19T00:00:00Z" },
+        ],
+      }),
+    });
+    assert.equal(res.status, 200);
+    const ingest = (await res.json()) as { applied: boolean; insights: { sampled: number; bestHooks: string[] } };
+    assert.equal(ingest.applied, true);
+    assert.equal(ingest.insights.sampled, 2);
+
+    // Insights endpoint reflects the stored metrics.
+    const ins = await getJson<{ sampled: number; top: { episodeNumber: number }[] }>(
+      `${api.base}/v1/channels/tiny-explorers/insights`,
+    );
+    assert.equal(ins.status, 200);
+    assert.equal(ins.body.top[0]!.episodeNumber, 2);
+
+    // Schedule endpoint parses the channel cadence.
+    const sched = await getJson<{ cadence: string; nextPublishAt: string }>(
+      `${api.base}/v1/channels/tiny-explorers/schedule`,
+    );
+    assert.equal(sched.status, 200);
+    assert.match(sched.body.cadence, /daily 16:00/);
+    assert.ok(!Number.isNaN(Date.parse(sched.body.nextPublishAt)));
+
+    // Bad metrics are a 400.
+    const bad = await fetch(`${api.base}/v1/channels/tiny-explorers/metrics`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ metrics: [{ episodeNumber: 0 }] }),
+    });
+    assert.equal(bad.status, 400);
+  } finally {
+    await api.close();
+  }
+});

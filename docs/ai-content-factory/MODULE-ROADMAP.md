@@ -117,9 +117,29 @@ app) is a view over exactly these objects.
 **Remaining for Module 5.1:** parallel execution of independent DAG branches, workflow
 CRUD endpoints, per-stage provider/model pinning, and the visual editor app.
 
-### ⬜ Module 6 — Publishing + Analytics + Learning Loop
-Platform publishing (YouTube/Shorts/TikTok/…), scheduler, analytics ingest, and write-back
-into `ChannelPerformance` so hooks/pacing improve automatically.
+### ✅ Module 6 — Publishing + Analytics + Learning Loop  *(built, 21 new tests — 85 total)*
+The flywheel closed: **publish → measure → learn → write back → the next episode is
+informed by what actually performed.**
+
+- **Publishing**: `PublishTarget` interface + `ExportPublishTarget` — writes a real,
+  platform-ready package on disk (`manifest.json` + `subtitles.srt`); publication recorded
+  in `ChannelMemory.publications`. `YouTube/TikTok` upload targets are the future
+  integration (need OAuth/credential mgmt from Module 8) — the free-quota platform APIs,
+  never a paid AI API.
+- **Scheduler**: cadence parser (`daily HH:MM [tz]`, `weekly DAY HH:MM [tz]`) with real
+  IANA-timezone + DST math via `Intl` — zero deps; `nextPublishAt` computes the next slot.
+- **Analytics**: `EpisodeMetrics` ingest (source-agnostic: JSON/CSV now, YouTube Analytics
+  API later), validation, `mergeMetrics`; `computeInsights` correlates metrics with the
+  episodes that produced them and ranks by retention.
+- **Learning loop (the point)**: `applyLearnings` writes winning hooks + avg-view-duration
+  into `ChannelPerformance`; the orchestrator's story stage reads `bestHooks` and injects
+  them into the next episode's prompt. Proven by a test: ingest metrics → the *next*
+  episode's story prompt cites the winning hook.
+- API: `POST .../metrics`, `GET .../insights`, `POST .../episodes/{n}/publish`,
+  `GET .../schedule`. CLI: `metrics`, `insights`, `publish`, `schedule`.
+
+**Remaining for Module 6.1:** real platform upload targets (YouTube resumable upload) once
+Identity/credentials (Module 8) exists; A/B thumbnail testing; retention-curve ingestion.
 
 ### ⬜ Module 7 — Multi-Agent Orchestrator
 Specialized agents (Creative Director, Script Writer, Storyboard Artist, Voice Director, …)

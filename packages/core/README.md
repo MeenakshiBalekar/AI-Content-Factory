@@ -1,4 +1,4 @@
-# @acf/core — Episode Kernel, Providers, Persistence, API, Quality & Workflows (Modules 1–5)
+# @acf/core — Kernel, Providers, Persistence, API, Quality, Workflows & Learning Loop (Modules 1–6)
 
 The engine behind **"Create Episode 248."** — the platform loads everything it already
 knows about a channel (cast, voices, locations, style, format, performance) and turns one
@@ -98,6 +98,24 @@ Built-ins: `standard` (full long-form) and `shorts` (vertical, parameterized asp
 duration, music stage removed). Channels can persist custom workflows in memory
 (`ChannelMemory.workflows`), which shadow built-ins by id; every episode records its
 `workflowId`. The future drag-and-drop editor is a UI over these same objects.
+
+## Publishing, analytics & the learning loop (Module 6)
+
+The flywheel: **publish → measure → learn → the next episode is informed.**
+
+```bash
+node src/cli.ts publish tiny-explorers 2                       # export package (manifest + srt)
+node src/cli.ts metrics tiny-explorers --metrics perf.json     # ingest + run the learning loop
+node src/cli.ts insights tiny-explorers                        # what the platform learned
+node src/cli.ts schedule tiny-explorers                        # next publish slot from cadence
+```
+
+`metrics` ingest correlates performance with the episodes that produced it, ranks by
+retention, and writes winning hooks into `ChannelPerformance` — which the story stage reads
+when planning the **next** episode (closed loop, tested). Publishing writes a real,
+platform-ready package to disk; the scheduler does IANA-timezone + DST math with zero deps.
+Real platform upload (YouTube resumable upload) is a future integration gated on credential
+management — a free-quota platform API, never a paid AI API.
 
 ## Providers — self-hosted first (Module 2, revised)
 

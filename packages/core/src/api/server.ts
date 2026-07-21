@@ -7,6 +7,12 @@ import { QualityEngine } from "../quality/quality-engine.ts";
 import { BUILTIN_WORKFLOWS, resolveWorkflow } from "../workflow/builtin-workflows.ts";
 import { validateWorkflow, type WorkflowDefinition } from "../workflow/workflow.ts";
 import { InMemoryJobQueue, type JobQueue } from "../jobs/job-queue.ts";
+import { AnalyticsService } from "../analytics/analytics-service.ts";
+import type { EpisodeMetrics } from "../analytics/metrics.ts";
+import { PublishingService } from "../publishing/publishing-service.ts";
+import { ExportPublishTarget } from "../publishing/publish-target.ts";
+import type { PublishTarget } from "../publishing/publish-target.ts";
+import { CadenceParseError } from "../publishing/scheduler.ts";
 import type { Episode } from "../domain/episode.ts";
 import { asChannelId } from "../domain/ids.ts";
 import { UnknownChannelError } from "../memory/memory-store.ts";
@@ -20,10 +26,15 @@ import { UnknownChannelError } from "../memory/memory-store.ts";
  *   GET  /v1/jobs/{jobId}            -> job state + progress events + episode when done
  *
  * Sync routes:
- *   GET  /v1/health                  -> { ok, providers }
- *   GET  /v1/channels                -> channel ids
- *   GET  /v1/channels/{id}           -> full channel memory
- *   GET  /v1/channels/{id}/episodes  -> episode summaries
+ *   GET  /v1/health                             -> { ok, providers }
+ *   GET  /v1/workflows                          -> built-in workflow templates
+ *   GET  /v1/channels                           -> channel ids
+ *   GET  /v1/channels/{id}                       -> full channel memory
+ *   GET  /v1/channels/{id}/episodes             -> episode summaries
+ *   POST /v1/channels/{id}/episodes/{n}/publish  -> publish, returns a PublishRecord
+ *   POST /v1/channels/{id}/metrics              -> ingest metrics + run the learning loop
+ *   GET  /v1/channels/{id}/insights             -> current learned insights
+ *   GET  /v1/channels/{id}/schedule             -> next publish slot from the cadence
  */
 
 export interface ApiDeps {
@@ -33,6 +44,8 @@ export interface ApiDeps {
   readonly jobs?: JobQueue<Episode>;
   /** Quality gating for episode creation; defaults to the standard engine. Pass null to disable. */
   readonly quality?: QualityEngine | null;
+  /** Where episodes publish (Module 6); defaults to an on-disk export target. */
+  readonly publishTarget?: PublishTarget;
 }
 
 interface CreateEpisodeBody {
@@ -75,6 +88,11 @@ export function createApiServer(deps: ApiDeps): Server {
     deps.registry,
     undefined,
     quality ? { quality } : {},
+  );
+  const analytics = new AnalyticsService(deps.store);
+  const publishing = new PublishingService(
+    deps.store,
+    deps.publishTarget ?? new ExportPublishTarget(".acf-exports"),
   );
 
   return createServer(async (req, res) => {
@@ -182,6 +200,47 @@ export function createApiServer(deps: ApiDeps): Server {
               ),
             );
             return send(res, 202, { jobId, poll: `/v1/jobs/${jobId}` });
+          }
+
+          // POST /v1/channels/{id}/episodes/{n}/publish
+          if (method === "POST" && parts.length === 6 && parts[5] === "publish") {
+            const n = Number(parts[4]);
+            if (!Number.isInteger(n) || n < 1) return sendError(res, 400, "episode number must be a positive integer");
+            const record = await publishing.publish(channelId, n);
+            return send(res, 201, record);
+          }
+        }
+
+        // POST /v1/channels/{id}/metrics — ingest performance data, run the learning loop
+        if (parts[3] === "metrics" && method === "POST" && parts.length === 4) {
+          const body = (await readJsonBody(req)) as { metrics?: unknown };
+          const rows = Array.isArray(body) ? body : body.metrics;
+          try {
+            const { insights, applied } = await analytics.ingest(channelId, rows as EpisodeMetrics[]);
+            return send(res, 200, { applied, insights });
+          } catch (e) {
+            if (e instanceof UnknownChannelError) throw e;
+            return sendError(res, 400, e instanceof Error ? e.message : "invalid metrics");
+          }
+        }
+
+        // GET /v1/channels/{id}/insights — current learned insights
+        if (parts[3] === "insights" && method === "GET" && parts.length === 4) {
+          return send(res, 200, await analytics.insights(channelId));
+        }
+
+        // GET /v1/channels/{id}/schedule — next publish slot from the channel cadence
+        if (parts[3] === "schedule" && method === "GET" && parts.length === 4) {
+          try {
+            const next = await publishing.nextSlot(channelId);
+            const memory = await deps.store.load(channelId);
+            return send(res, 200, {
+              cadence: memory?.channel.schedule.cadence,
+              nextPublishAt: next.toISOString(),
+            });
+          } catch (e) {
+            if (e instanceof CadenceParseError) return sendError(res, 400, e.message);
+            throw e;
           }
         }
       }
