@@ -1,0 +1,30 @@
+{
+  "name": "@acf/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Content Factory — memory-driven episode kernel (Module 1)",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "bin": {
+    "acf": "./src/cli.ts"
+  },
+  "scripts": {
+    "acf": "node src/cli.ts",
+    "test": "node --test --experimental-strip-types",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai",
+    "content",
+    "generation",
+    "orchestration",
+    "memory"
+  ],
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.8.3"
+  }
+}

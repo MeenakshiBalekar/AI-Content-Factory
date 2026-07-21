@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  core:
+    name: "@acf/core — test + typecheck"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test (zero-dependency runtime)
+        run: node --test --experimental-strip-types
+      - name: Install dev tooling
+        run: npm ci
+      - name: Typecheck (strict)
+        run: npm run typecheck
