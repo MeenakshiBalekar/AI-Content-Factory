@@ -1,10 +1,11 @@
-# @acf/core — Episode Kernel, Providers, Persistence & API (Modules 1–3)
+# @acf/core — Episode Kernel, Providers, Persistence, API & Quality (Modules 1–4)
 
 The engine behind **"Create Episode 248."** — the platform loads everything it already
 knows about a channel (cast, voices, locations, style, format, performance) and turns one
-sentence into a fully-planned episode with every prompt composed from memory.
+sentence into a fully-planned episode with every prompt composed from memory, every
+output quality-inspected, and rejected output regenerated.
 
-Modules 1–3 of the AI Content Factory, all **fully functional** — no placeholder bodies.
+Modules 1–4 of the AI Content Factory, all **fully functional** — no placeholder bodies.
 Runs with **zero runtime dependencies** on Node ≥ 22.18 (native TypeScript execution,
 built-in test runner, built-in SQLite).
 
@@ -48,7 +49,7 @@ the same `MemoryStore` interface — the Postgres migration is a driver swap.
 ## Test & typecheck
 
 ```bash
-npm test                                   # 42 tests, zero deps
+npm test                                   # 54 tests, zero deps
 npm i && npm run typecheck                 # strict TS (TS 5.8, all strict flags on)
 ```
 
@@ -56,12 +57,29 @@ npm i && npm run typecheck                 # strict TS (TS 5.8, all strict flags
 
 | Concern | Where | Guarantee |
 | --- | --- | --- |
-| Persistent channel memory | `memory/json-memory-store.ts` | Atomic JSON persistence, survives runs |
+| Persistent channel memory | `memory/json-memory-store.ts`, `memory/sqlite-memory-store.ts` | Durable persistence (atomic JSON or SQL tables), survives runs |
 | Character identity locking | `prompt/identity.ts` | Deterministic seed + canonical description injected into **every** visual prompt — same in Ep 1 and Ep 248 |
 | Voice locking | `domain/voice.ts`, `PromptComposer.voicePrompts` | Same voice ref/pitch/speed resolved every episode |
 | Scene memory | `domain/environment.ts`, `PromptComposer.imagePrompt` | Recurring locations keep lighting, props, camera language |
 | Vendor independence | `providers/provider.ts` | Orchestrator depends only on capability interfaces; providers are adapters |
 | Episode planning | `orchestrator/orchestrator.ts` | Auto-increments episode number, threads the previous episode, records every prompt/output |
+| Quality gating | `quality/` | Every stage inspected; rejects regenerate (attempt budget); audit persisted on the episode; honest failure — never silently shipped |
+
+## Quality engine (Module 4)
+
+On by default. Each stage's output runs through pluggable inspectors — identity
+consistency (locked fragments present in every visual prompt), full SRT validation,
+voice/dialogue coverage, output completeness, thumbnail/title checks. Any `reject`
+finding triggers regeneration (default budget: 3 attempts); the episode carries the
+full report at `episode.quality` (per-stage attempts, findings, pass/fail).
+
+```bash
+node src/cli.ts create tiny-explorers                # quality gating on
+node src/cli.ts create tiny-explorers --no-quality   # raw pipeline
+```
+
+Vision-model inspectors (blur, framing, lip-sync, pixel-level identity comparison) plug
+into the same `Inspector` interface in Module 4.1.
 
 ## Real providers (Module 2)
 

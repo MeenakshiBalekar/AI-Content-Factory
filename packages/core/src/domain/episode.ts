@@ -1,4 +1,5 @@
 import type { ChannelId, CharacterId, EnvironmentId, EpisodeId } from "./ids.ts";
+import type { QualityReport } from "../quality/report.ts";
 
 /** The kinds of assets the pipeline produces. Kept as a string-literal union (no enum)
  *  so the code stays within erasable TypeScript. */
@@ -45,6 +46,8 @@ export interface Episode {
   readonly logline: string;
   readonly beats: readonly StoryBeat[];
   readonly assets: readonly EpisodeAsset[];
+  /** Quality audit, attached when the orchestrator runs with a QualityEngine (Module 4). */
+  readonly quality?: QualityReport;
   readonly createdAt: string;
 }
 

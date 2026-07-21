@@ -67,10 +67,32 @@ the orchestrator is still unchanged.
 SSE streaming of job events, MCP server exposing the same operations, auth (Module 8 pulls
 some of this forward if the API goes public earlier).
 
-### ⬜ Module 4 — Quality Engine
-Post-stage inspection + reject/regenerate loop: character-consistency, framing, lip-sync,
-subtitle accuracy, hook strength, safety. Consistency levels L2–L4 (reference images,
-per-character embeddings).
+### ✅ Module 4 — Quality Engine  *(built, 12 new tests — 54 total)*
+Every stage's output is inspected; rejected output is regenerated within an attempt
+budget; the full audit (findings, attempts, pass/fail) is persisted on the episode.
+
+- `Finding`/`StageQuality`/`QualityReport` types; severities: `reject` (blocks →
+  regenerate) and `warn` (recorded, doesn't block).
+- Pluggable `Inspector` interface + deterministic built-ins:
+  - **completeness** — media assets must have output URIs; failed assets reject
+  - **identity-consistency** — every visual prompt must contain each beat character's
+    locked identity fragment + the channel style; missing = drift = reject
+  - **subtitles** — full SRT validation (numbering, timing order, overlap, empty cues,
+    max 2 lines, 42-char line length)
+  - **voice-coverage** — one voice asset per dialogue line, exactly
+  - **metadata** — thumbnail carries the locked thumbnail style; title length warning
+- Orchestrator: reject → regenerate loop (`maxAttemptsPerStage`, default 3); attempts +
+  final findings attached per stage; honest failure when the budget is exhausted
+  (`quality.passed: false` — never silently shipped).
+- On by default in CLI (`--no-quality` opts out) and API (`quality: null` opts out);
+  job progress events include attempts/rejects.
+- Proof it works: a flaky-provider test regenerates and passes on attempt 2; and the
+  engine caught a real 46-char subtitle line in our own generator (fixed with proper
+  word-wrapping — the catch is in the test suite now).
+
+**Remaining for Module 4.1:** vision-model inspectors (blur, framing, lip-sync,
+pixel-level character comparison vs reference images) as additional `Inspector`
+plug-ins; prompt-adjustment on retry; consistency levels L2–L4.
 
 ### ⬜ Module 5 — Workflow Engine
 User-editable stage DAG over the existing plan model; drag-and-drop UI (Next.js). Templates

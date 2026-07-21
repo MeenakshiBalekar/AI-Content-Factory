@@ -49,4 +49,18 @@ export { DEFAULT_PRODUCTION_PLAN } from "./orchestrator/production-plan.ts";
 export type { ProductionStage } from "./orchestrator/production-plan.ts";
 export { StoryPlanner } from "./orchestrator/story-planner.ts";
 export { EpisodeOrchestrator } from "./orchestrator/orchestrator.ts";
-export type { CreateEpisodeOptions, StageEvent } from "./orchestrator/orchestrator.ts";
+export type { CreateEpisodeOptions, OrchestratorOptions, StageEvent } from "./orchestrator/orchestrator.ts";
+
+// Module 4 — quality engine.
+export { QualityEngine } from "./quality/quality-engine.ts";
+export {
+  CompletenessInspector,
+  IdentityConsistencyInspector,
+  SubtitleInspector,
+  VoiceCoverageInspector,
+  MetadataInspector,
+  defaultInspectors,
+} from "./quality/inspectors.ts";
+export type { Inspector, StageContext } from "./quality/inspectors.ts";
+export { buildReport, hasRejects } from "./quality/report.ts";
+export type { Finding, QualityReport, Severity, StageQuality } from "./quality/report.ts";

@@ -7,6 +7,7 @@ import type { MemoryStore } from "./memory/memory-store.ts";
 import { buildProviderRegistry } from "./providers/factory.ts";
 import { FileObjectStore } from "./storage/object-store.ts";
 import { createApiServer, listen } from "./api/server.ts";
+import { QualityEngine } from "./quality/quality-engine.ts";
 import { sampleChannel } from "./examples/sample-channel.ts";
 import { asChannelId } from "./domain/ids.ts";
 import type { EpisodeAsset } from "./domain/episode.ts";
@@ -44,6 +45,7 @@ async function main(): Promise<number> {
       number: { type: "string" },
       json: { type: "boolean", default: false },
       local: { type: "boolean", default: false },
+      "no-quality": { type: "boolean", default: false },
     },
   });
 
@@ -94,7 +96,12 @@ async function main(): Promise<number> {
       if (!values.json) {
         console.log(`providers: text=${report.text} image=${report.image} audio=${report.audio} video=${report.video}`);
       }
-      const orchestrator = new EpisodeOrchestrator(store, registry);
+      const orchestrator = new EpisodeOrchestrator(
+        store,
+        registry,
+        undefined,
+        values["no-quality"] ? {} : { quality: new QualityEngine() },
+      );
       const episode = await orchestrator.createEpisode(
         asChannelId(arg),
         {
@@ -103,7 +110,10 @@ async function main(): Promise<number> {
         },
         (e) => {
           if (!values.json) {
-            process.stdout.write(`  → ${e.stage.label}: ${e.assets.length} asset(s)\n`);
+            const retries = (e.attempts ?? 1) > 1 ? ` (attempts: ${e.attempts})` : "";
+            const rejects = e.findings?.filter((f) => f.severity === "reject").length ?? 0;
+            const flag = rejects > 0 ? ` ✗ ${rejects} reject(s)` : "";
+            process.stdout.write(`  → ${e.stage.label}: ${e.assets.length} asset(s)${retries}${flag}\n`);
           }
         },
       );
@@ -114,6 +124,16 @@ async function main(): Promise<number> {
         console.log(`\n✓ Episode ${episode.number}: "${episode.title}"`);
         console.log(`  ${episode.logline}`);
         console.log(`  ${episode.assets.length} assets:`, summarize(episode.assets));
+        if (episode.quality) {
+          const warns = episode.quality.stages.reduce(
+            (n, s) => n + s.findings.filter((f) => f.severity === "warn").length,
+            0,
+          );
+          console.log(
+            `  quality: ${episode.quality.passed ? "PASSED" : "FAILED"}` +
+              ` (${episode.quality.totalRegenerations} regeneration(s), ${warns} warning(s))`,
+          );
+        }
         const thumb = episode.assets.find((a) => a.kind === "thumbnail");
         if (thumb?.outputUri) console.log(`  thumbnail: ${thumb.outputUri}`);
       }

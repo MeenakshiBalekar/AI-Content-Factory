@@ -3,6 +3,7 @@ import type { MemoryStore } from "../memory/memory-store.ts";
 import type { ProviderRegistry } from "../providers/provider.ts";
 import type { ProviderReport } from "../providers/factory.ts";
 import { EpisodeOrchestrator } from "../orchestrator/orchestrator.ts";
+import { QualityEngine } from "../quality/quality-engine.ts";
 import { InMemoryJobQueue, type JobQueue } from "../jobs/job-queue.ts";
 import type { Episode } from "../domain/episode.ts";
 import { asChannelId } from "../domain/ids.ts";
@@ -28,6 +29,8 @@ export interface ApiDeps {
   readonly registry: ProviderRegistry;
   readonly providerReport: ProviderReport;
   readonly jobs?: JobQueue<Episode>;
+  /** Quality gating for episode creation; defaults to the standard engine. Pass null to disable. */
+  readonly quality?: QualityEngine | null;
 }
 
 interface CreateEpisodeBody {
@@ -62,7 +65,13 @@ async function readJsonBody(req: IncomingMessage, maxBytes = 1_048_576): Promise
 
 export function createApiServer(deps: ApiDeps): Server {
   const jobs = deps.jobs ?? new InMemoryJobQueue<Episode>();
-  const orchestrator = new EpisodeOrchestrator(deps.store, deps.registry);
+  const quality = deps.quality === null ? undefined : deps.quality ?? new QualityEngine();
+  const orchestrator = new EpisodeOrchestrator(
+    deps.store,
+    deps.registry,
+    undefined,
+    quality ? { quality } : {},
+  );
 
   return createServer(async (req, res) => {
     try {
@@ -132,7 +141,12 @@ export function createApiServer(deps: ApiDeps): Server {
                   emit({
                     at: new Date().toISOString(),
                     label: ev.stage.label,
-                    data: { kind: ev.stage.kind, assets: ev.assets.length },
+                    data: {
+                      kind: ev.stage.kind,
+                      assets: ev.assets.length,
+                      ...(ev.attempts !== undefined ? { attempts: ev.attempts } : {}),
+                      ...(ev.findings ? { rejects: ev.findings.filter((f) => f.severity === "reject").length } : {}),
+                    },
                   }),
               ),
             );

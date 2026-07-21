@@ -11,6 +11,8 @@ import {
 } from "../memory/memory-store.ts";
 import { PromptComposer } from "../prompt/prompt-composer.ts";
 import type { ProviderRegistry } from "../providers/provider.ts";
+import type { QualityEngine } from "../quality/quality-engine.ts";
+import { buildReport, hasRejects, type Finding, type StageQuality } from "../quality/report.ts";
 import {
   DEFAULT_PRODUCTION_PLAN,
   type ProductionStage,
@@ -25,10 +27,21 @@ export interface CreateEpisodeOptions {
   readonly now?: () => Date;
 }
 
-/** A progress event emitted as each stage runs, for CLI/API streaming. */
+/** A progress event emitted as each stage settles, for CLI/API streaming. */
 export interface StageEvent {
   readonly stage: ProductionStage;
   readonly assets: readonly EpisodeAsset[];
+  /** How many attempts the stage took (1 = first try) — present when quality gating is on. */
+  readonly attempts?: number;
+  /** Final-attempt findings — present when quality gating is on. */
+  readonly findings?: readonly Finding[];
+}
+
+export interface OrchestratorOptions {
+  /** When set, every stage's output is inspected and rejected output is regenerated. */
+  readonly quality?: QualityEngine;
+  /** Attempt budget per stage when quality gating is on (first try included). */
+  readonly maxAttemptsPerStage?: number;
 }
 
 /**
@@ -43,15 +56,20 @@ export class EpisodeOrchestrator {
   readonly #store: MemoryStore;
   readonly #registry: ProviderRegistry;
   readonly #plan: readonly ProductionStage[];
+  readonly #quality: QualityEngine | undefined;
+  readonly #maxAttempts: number;
 
   constructor(
     store: MemoryStore,
     registry: ProviderRegistry,
     plan: readonly ProductionStage[] = DEFAULT_PRODUCTION_PLAN,
+    opts: OrchestratorOptions = {},
   ) {
     this.#store = store;
     this.#registry = registry;
     this.#plan = plan;
+    this.#quality = opts.quality;
+    this.#maxAttempts = Math.max(1, opts.maxAttemptsPerStage ?? 3);
   }
 
   async createEpisode(
@@ -74,18 +92,46 @@ export class EpisodeOrchestrator {
       ? `${planner.logline(nextNumber)} Focus: ${opts.brief}.`
       : planner.logline(nextNumber);
 
+    const stageCtx = {
+      memory,
+      composer,
+      beats,
+      logline,
+      title: planner.title(nextNumber),
+      episodeNumber: nextNumber,
+    };
+
     const assets: EpisodeAsset[] = [];
+    const stageQualities: StageQuality[] = [];
     for (const stage of this.#plan) {
-      const produced = await this.#runStage(stage, {
-        memory,
-        composer,
-        beats,
-        logline,
-        title: planner.title(nextNumber),
-        episodeNumber: nextNumber,
-      });
+      let produced = await this.#runStage(stage, stageCtx);
+      let attempts = 1;
+      let findings: Finding[] = [];
+
+      if (this.#quality) {
+        findings = this.#quality.inspectStage(produced, { stage, memory, beats });
+        // Reject → regenerate, within the attempt budget. Providers with any randomness
+        // (or recovered transient failures) get a genuine second chance; deterministic
+        // providers simply exhaust the budget and the failure is recorded honestly.
+        while (this.#quality.shouldRegenerate(findings) && attempts < this.#maxAttempts) {
+          produced = await this.#runStage(stage, stageCtx);
+          attempts++;
+          findings = this.#quality.inspectStage(produced, { stage, memory, beats });
+        }
+        stageQualities.push({
+          kind: stage.kind,
+          attempts,
+          findings,
+          passed: !hasRejects(findings),
+        });
+      }
+
       assets.push(...produced);
-      onStage?.({ stage, assets: produced });
+      onStage?.({
+        stage,
+        assets: produced,
+        ...(this.#quality ? { attempts, findings } : {}),
+      });
     }
 
     const episode: Episode = {
@@ -96,6 +142,7 @@ export class EpisodeOrchestrator {
       logline,
       beats,
       assets,
+      ...(this.#quality ? { quality: buildReport(stageQualities) } : {}),
       createdAt: now().toISOString(),
     };
 
@@ -143,7 +190,7 @@ export class EpisodeOrchestrator {
             seed,
             aspect: ctx.memory.channel.style.aspectRatio,
           });
-          out.push(this.#done(stage, `Keyframe beat ${b.index + 1}`, prompt, asset.provider, asset.outputUri, { seed }));
+          out.push(this.#done(stage, `Keyframe beat ${b.index + 1}`, prompt, asset.provider, asset.outputUri, { seed, beat: b.index }));
         }
         return out;
       }
@@ -189,14 +236,27 @@ export class EpisodeOrchestrator {
             aspect: ctx.memory.channel.style.aspectRatio,
             durationSec: Math.round(ctx.memory.channel.format.targetDurationSec / beats.length),
           });
-          out.push(this.#done(stage, `Animate beat ${b.index + 1}`, prompt, asset.provider, asset.outputUri, { seed }));
+          out.push(this.#done(stage, `Animate beat ${b.index + 1}`, prompt, asset.provider, asset.outputUri, { seed, beat: b.index }));
         }
         return out;
       }
       case "subtitles": {
+        // Wrap dialogue at 42 chars per line (readability), max 2 lines per cue — the
+        // channel's subtitle style. The SubtitleInspector enforces the same rules.
+        const wrap = (line: string): string => {
+          if (line.length <= 42) return line;
+          const words = line.split(/\s+/);
+          const lines: string[] = [""];
+          for (const w of words) {
+            const cur = lines[lines.length - 1]!;
+            if (cur && (cur + " " + w).length > 42) lines.push(w);
+            else lines[lines.length - 1] = cur ? `${cur} ${w}` : w;
+          }
+          return lines.slice(0, 2).join("\n");
+        };
         const srt = beats
           .flatMap((b) => b.dialogue.map((d) => d.line))
-          .map((line, i) => `${i + 1}\n00:00:${String(i * 3).padStart(2, "0")},000 --> 00:00:${String(i * 3 + 2).padStart(2, "0")},500\n${line}`)
+          .map((line, i) => `${i + 1}\n00:00:${String(i * 3).padStart(2, "0")},000 --> 00:00:${String(i * 3 + 2).padStart(2, "0")},500\n${wrap(line)}`)
           .join("\n\n");
         return [this.#ok(stage, "Subtitles (SRT)", srt, "internal", { cues: srt.split("\n\n").length })];
       }
