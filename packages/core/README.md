@@ -1,12 +1,12 @@
-# @acf/core — Memory-Driven Episode Kernel (Module 1)
+# @acf/core — Episode Kernel, Providers, Persistence & API (Modules 1–3)
 
-The kernel behind **"Create Episode 248."** — the platform loads everything it already
+The engine behind **"Create Episode 248."** — the platform loads everything it already
 knows about a channel (cast, voices, locations, style, format, performance) and turns one
 sentence into a fully-planned episode with every prompt composed from memory.
 
-This is **Module 1** of the AI Content Factory. It is intentionally narrow and **fully
-functional** — no placeholder bodies. It runs with **zero dependencies** on Node ≥ 22.18
-(uses native TypeScript execution and the built-in test runner).
+Modules 1–3 of the AI Content Factory, all **fully functional** — no placeholder bodies.
+Runs with **zero runtime dependencies** on Node ≥ 22.18 (native TypeScript execution,
+built-in test runner, built-in SQLite).
 
 ## Run it
 
@@ -26,10 +26,29 @@ node src/cli.ts memory tiny-explorers --dir ./.acf-memory
 node src/cli.ts create tiny-explorers --dir ./.acf-memory --json
 ```
 
+## Run it as a service (Module 3)
+
+```bash
+node src/cli.ts seed --sqlite acf.db          # durable SQL persistence (node:sqlite)
+node src/cli.ts serve --sqlite acf.db --port 8787
+
+curl http://127.0.0.1:8787/v1/health
+curl -X POST http://127.0.0.1:8787/v1/channels/tiny-explorers/episodes \
+     -H 'content-type: application/json' -d '{"number":248,"brief":"learning to share"}'
+# -> 202 { "jobId": "...", "poll": "/v1/jobs/..." }
+curl http://127.0.0.1:8787/v1/jobs/<jobId>    # state + per-stage progress + episode
+curl http://127.0.0.1:8787/v1/channels/tiny-explorers/episodes
+```
+
+Episode creation is an **async job** (real renders take minutes): POST returns `202` with a
+job id immediately; the job records a progress event per pipeline stage. `--sqlite` swaps
+JSON-file memory for SQL tables (episode append = INSERT; UNIQUE per channel+number) behind
+the same `MemoryStore` interface — the Postgres migration is a driver swap.
+
 ## Test & typecheck
 
 ```bash
-node --test --experimental-strip-types    # 16 tests, zero deps
+npm test                                   # 42 tests, zero deps
 npm i && npm run typecheck                 # strict TS (TS 5.8, all strict flags on)
 ```
 

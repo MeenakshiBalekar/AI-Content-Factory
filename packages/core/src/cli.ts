@@ -2,8 +2,11 @@
 import { parseArgs } from "node:util";
 import { EpisodeOrchestrator } from "./orchestrator/orchestrator.ts";
 import { JsonMemoryStore } from "./memory/json-memory-store.ts";
+import { SqliteMemoryStore } from "./memory/sqlite-memory-store.ts";
+import type { MemoryStore } from "./memory/memory-store.ts";
 import { buildProviderRegistry } from "./providers/factory.ts";
 import { FileObjectStore } from "./storage/object-store.ts";
+import { createApiServer, listen } from "./api/server.ts";
 import { sampleChannel } from "./examples/sample-channel.ts";
 import { asChannelId } from "./domain/ids.ts";
 import type { EpisodeAsset } from "./domain/episode.ts";
@@ -12,11 +15,13 @@ import type { EpisodeAsset } from "./domain/episode.ts";
  * Reference CLI for the episode kernel. Providers are chosen from the environment: set
  * OPENAI_API_KEY / ELEVENLABS_API_KEY / ACF_VIDEO_* to use real models, otherwise each
  * capability falls back to the free offline LocalProvider. `--local` forces offline mode.
+ * Storage defaults to per-channel JSON files; pass --sqlite <file> for the SQL store.
  *
  *   node src/cli.ts seed
  *   node src/cli.ts create tiny-explorers --brief "learning to share"   # real if keys set
  *   node src/cli.ts create tiny-explorers --local                       # always free/offline
  *   node src/cli.ts providers                                           # show what's wired
+ *   node src/cli.ts serve --port 8787 --sqlite acf.db                   # REST API
  */
 
 const DEFAULT_DIR = ".acf-memory";
@@ -33,6 +38,8 @@ async function main(): Promise<number> {
     options: {
       dir: { type: "string", default: DEFAULT_DIR },
       assets: { type: "string", default: ".acf-assets" },
+      sqlite: { type: "string" },
+      port: { type: "string", default: "8787" },
       brief: { type: "string" },
       number: { type: "string" },
       json: { type: "boolean", default: false },
@@ -41,7 +48,9 @@ async function main(): Promise<number> {
   });
 
   const [command, arg] = positionals;
-  const store = new JsonMemoryStore(values.dir as string);
+  const store: MemoryStore = values.sqlite
+    ? new SqliteMemoryStore(values.sqlite as string)
+    : new JsonMemoryStore(values.dir as string);
 
   switch (command) {
     case "providers": {
@@ -56,7 +65,8 @@ async function main(): Promise<number> {
     case "seed": {
       const mem = sampleChannel();
       await store.save(mem);
-      console.log(`✓ Seeded channel "${mem.channel.name}" (${mem.channel.id}) into ${values.dir}/`);
+      const dest = values.sqlite ? `sqlite:${values.sqlite}` : `${values.dir}/`;
+      console.log(`✓ Seeded channel "${mem.channel.name}" (${mem.channel.id}) into ${dest}`);
       console.log(`  ${Object.keys(mem.characters).length} characters, ${Object.keys(mem.voices).length} voices, ${Object.keys(mem.environments).length} environments.`);
       return 0;
     }
@@ -110,10 +120,26 @@ async function main(): Promise<number> {
       return 0;
     }
 
+    case "serve": {
+      const { registry, report } = buildProviderRegistry({
+        forceLocal: values.local as boolean,
+        objectStore: new FileObjectStore(values.assets as string),
+      });
+      const server = createApiServer({ store, registry, providerReport: report });
+      const port = await listen(server, Number(values.port));
+      console.log(`✓ AI Content Factory API listening on http://127.0.0.1:${port}`);
+      console.log(`  providers: text=${report.text} image=${report.image} audio=${report.audio} video=${report.video}`);
+      console.log(`  try: curl http://127.0.0.1:${port}/v1/health`);
+      return KEEP_RUNNING;
+    }
+
     default:
-      return usage("seed | channels | providers | memory <id> | create <id>");
+      return usage("seed | channels | providers | memory <id> | create <id> | serve");
   }
 }
+
+/** Sentinel: the command started a long-lived server; don't exit the process. */
+const KEEP_RUNNING = -1;
 
 function usage(cmd: string): number {
   console.error(`usage: acf ${cmd}`);
@@ -125,7 +151,9 @@ function fail(msg: string): number {
 }
 
 main()
-  .then((code) => process.exit(code))
+  .then((code) => {
+    if (code !== KEEP_RUNNING) process.exit(code);
+  })
   .catch((err: unknown) => {
     console.error(err instanceof Error ? err.stack ?? err.message : String(err));
     process.exit(1);

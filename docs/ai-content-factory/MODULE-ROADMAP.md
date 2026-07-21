@@ -43,10 +43,29 @@ capabilities are billable on any given run. See §4 of the design doc.
 **Remaining for Module 2.1:** a native Genmax HTTP adapter (needs Genmax's REST spec — its
 tools are exposed over MCP today), plus provider health checks and per-call cost metadata.
 
-### ⬜ Module 3 — Persistence + API Surface
-`PostgresMemoryStore` (Prisma) behind the same `MemoryStore` interface; object storage for
-assets. Fastify REST + MCP server exposing `channel.*` and `episode.create`. Job queue
-(BullMQ) so `create` returns a job id and streams stage events.
+### ✅ Module 3 — Persistence + API Surface  *(built, 14 new tests — 42 total)*
+Durable SQL persistence and a REST API with async jobs, all behind the existing seams —
+the orchestrator is still unchanged.
+
+- `SqliteMemoryStore` (Node built-in `node:sqlite`): channels + episodes **tables** (an
+  episode append is an INSERT, not a document rewrite), UNIQUE (channel, number),
+  transactions, WAL. Same `MemoryStore` interface — the Postgres/Prisma swap is a driver
+  change, and this schema mirrors that future layout.
+- `JobQueue` abstraction + `InMemoryJobQueue`: submit → run async → progress events →
+  settle. This is the seam BullMQ/Redis implements in production.
+- REST API (`node:http`, framework-free by design):
+  - `GET /v1/health` — provider wiring report
+  - `GET /v1/channels` / `GET /v1/channels/{id}` / `GET /v1/channels/{id}/episodes`
+  - `POST /v1/channels/{id}/episodes` → **202 { jobId }**, body `{ brief?, number? }`
+  - `GET /v1/jobs/{id}` — state, per-stage progress events, episode on success
+  - input validation (400), unknown channel/job/route (404), JSON errors throughout
+- CLI: `serve --port 8787 [--sqlite acf.db] [--local]`; `--sqlite` works for all commands.
+- Verified end-to-end over real HTTP: seed → POST episode 248 → poll job → episode
+  persisted in SQLite and listed.
+
+**Remaining for Module 3.1:** Postgres driver (same interface/schema), broker-backed queue,
+SSE streaming of job events, MCP server exposing the same operations, auth (Module 8 pulls
+some of this forward if the API goes public earlier).
 
 ### ⬜ Module 4 — Quality Engine
 Post-stage inspection + reject/regenerate loop: character-consistency, framing, lip-sync,

@@ -11,6 +11,13 @@ export { recapOf } from "./domain/episode.ts";
 export type { ChannelMemory, MemoryStore } from "./memory/memory-store.ts";
 export { UnknownChannelError } from "./memory/memory-store.ts";
 export { JsonMemoryStore } from "./memory/json-memory-store.ts";
+export { SqliteMemoryStore } from "./memory/sqlite-memory-store.ts";
+
+// Module 3 — jobs + API surface.
+export { InMemoryJobQueue } from "./jobs/job-queue.ts";
+export type { Job, JobEvent, JobQueue, JobState, JobTask } from "./jobs/job-queue.ts";
+export { createApiServer, listen } from "./api/server.ts";
+export type { ApiDeps } from "./api/server.ts";
 
 export { identitySeed, identityFragment, paletteToken } from "./prompt/identity.ts";
 export { PromptComposer } from "./prompt/prompt-composer.ts";

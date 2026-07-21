@@ -2,7 +2,7 @@
   "name": "@acf/core",
   "version": "0.1.0",
   "private": true,
-  "description": "AI Content Factory — memory-driven episode kernel (Module 1)",
+  "description": "AI Content Factory — memory-driven episode kernel, provider adapters, persistence + API",
   "type": "module",
   "engines": {
     "node": ">=22.18.0"
@@ -11,8 +11,9 @@
     "acf": "./src/cli.ts"
   },
   "scripts": {
-    "acf": "node src/cli.ts",
-    "test": "node --test --experimental-strip-types",
+    "acf": "node --disable-warning=ExperimentalWarning src/cli.ts",
+    "serve": "node --disable-warning=ExperimentalWarning src/cli.ts serve",
+    "test": "node --disable-warning=ExperimentalWarning --test --experimental-strip-types",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
