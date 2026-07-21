@@ -40,6 +40,8 @@ export type {
 } from "./providers/http/config.ts";
 export { ChatCompletionsTextProvider } from "./providers/chat-completions-text-provider.ts";
 export { ImagesApiImageProvider } from "./providers/images-api-image-provider.ts";
+export { Automatic1111ImageProvider, sdDimensions } from "./providers/automatic1111-image-provider.ts";
+export type { Automatic1111Config } from "./providers/automatic1111-image-provider.ts";
 export { SpeechApiAudioProvider } from "./providers/speech-api-audio-provider.ts";
 export { ElevenLabsAudioProvider } from "./providers/elevenlabs-audio-provider.ts";
 export { AsyncVideoProvider } from "./providers/async-video-provider.ts";

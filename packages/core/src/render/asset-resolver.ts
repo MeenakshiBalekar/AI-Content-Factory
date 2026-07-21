@@ -77,7 +77,12 @@ export class AssetResolver {
     const { width, height } = dimsForAspect(aspect);
 
     const imageProvider = cfg.imageBaseUrl
-      ? new LocalImageProvider(cfg.imageBaseUrl, cfg.imageModel, join(this.#workdir, "img"))
+      ? new LocalImageProvider(cfg.imageBaseUrl, cfg.imageModel, join(this.#workdir, "img"), {
+          api: cfg.imageApi,
+          ...(cfg.imageSteps !== undefined ? { steps: cfg.imageSteps } : {}),
+          ...(cfg.imageMaxEdge !== undefined ? { maxEdge: cfg.imageMaxEdge } : {}),
+          ...(cfg.imageNegative !== undefined ? { negativePrompt: cfg.imageNegative } : {}),
+        })
       : undefined;
     const speechProvider = cfg.audioBaseUrl
       ? new LocalSpeechProvider(cfg.audioBaseUrl, cfg.audioModel, join(this.#workdir, "aud"))

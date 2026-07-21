@@ -102,12 +102,41 @@ See [`SELF-HOSTED-STACK.md`](./SELF-HOSTED-STACK.md) for the model/server option
 sizing. Note: those AI models cost GPU time + electricity — self-hosting removes per-call API
 fees, not the cost of running the hardware.
 
+### Draw Things on Apple Silicon (Mac) — the txt2img protocol
+
+Draw Things (free Mac App Store app) runs Stable Diffusion on Metal and is the easiest real
+image backend on an Apple Silicon Mac, especially with limited unified memory. Its HTTP API
+speaks the **AUTOMATIC1111 `/sdapi/v1/txt2img`** protocol (not OpenAI images), so select it
+with `ACF_IMAGE_API=automatic1111`.
+
+1. Draw Things → **Settings → Advanced → API Server**: set **Protocol: HTTP**, **Port: 7860**,
+   toggle **Server Online**. Load a model in the app (e.g. Stable Diffusion 1.5).
+2. Point the platform at it:
+
+```bash
+export ACF_IMAGE_BASE_URL=http://127.0.0.1:7860
+export ACF_IMAGE_API=automatic1111       # use the txt2img protocol (Draw Things / A1111 / SD.Next)
+export ACF_IMAGE_STEPS=24                 # optional; SD 1.5 sampling steps
+export ACF_IMAGE_MAX_EDGE=768             # optional; longest side, keep ~512–768 on 8 GB Macs
+
+node src/cli.ts render tiny-explorers 5 --dir .acf-memory --renders .acf-renders
+```
+
+The model is whatever you loaded **in the Draw Things app** — the platform does not send a
+checkpoint override. Sizes are auto-mapped to SD-friendly, /64 dimensions (16:9 → 768×448,
+1:1 → 512×512) so generation stays fast and memory-safe. `ACF_IMAGE_NEGATIVE` overrides the
+default negative prompt. The same adapter works with real AUTOMATIC1111, SD.Next, and Forge.
+
 ## Environment variables (summary)
 
 | Var | Purpose | Default |
 | --- | --- | --- |
-| `ACF_IMAGE_BASE_URL` | Local image server (OpenAI images / ComfyUI bridge). Unset → procedural cards. | (unset) |
-| `ACF_IMAGE_MODEL` | Image model name | `flux.1-schnell` |
+| `ACF_IMAGE_BASE_URL` | Local image server. Unset → procedural cards. | (unset) |
+| `ACF_IMAGE_API` | `openai` (`/v1/images/generations`) or `automatic1111` (`/sdapi/v1/txt2img`, Draw Things) | `openai` |
+| `ACF_IMAGE_MODEL` | Image model name (ignored by Draw Things — set it in the app) | `flux.1-schnell` |
+| `ACF_IMAGE_STEPS` | Sampling steps (automatic1111 path) | `24` |
+| `ACF_IMAGE_MAX_EDGE` | Longest image side, /64 (automatic1111 path) | `768` |
+| `ACF_IMAGE_NEGATIVE` | Negative prompt (automatic1111 path) | a sensible default |
 | `ACF_AUDIO_BASE_URL` | Local TTS server (`/v1/audio/speech`). Unset → silent tracks. | (unset) |
 | `ACF_SPEECH_MODEL` | TTS model/voice engine | `kokoro` |
 | `ACF_MUSIC_FILE` | Path to a real music bed to mix in | (unset) |
