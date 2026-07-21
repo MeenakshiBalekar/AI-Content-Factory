@@ -74,6 +74,8 @@ export { LocalImageProvider, LocalSpeechProvider, LocalBackendUnavailableError, 
 export { AssetResolver } from "./render/asset-resolver.ts";
 export type { RenderPlan, RenderBeat, ImageSource, AudioSource, MusicSource } from "./render/asset-resolver.ts";
 export { FFmpegRenderer } from "./render/ffmpeg-renderer.ts";
+export { resolveFontFile, buildFontContext, ffFilterPath, FontNotFoundError } from "./render/fonts.ts";
+export type { FontContext } from "./render/fonts.ts";
 export { RenderService } from "./render/render-service.ts";
 export type { RenderResult } from "./render/render-service.ts";
 

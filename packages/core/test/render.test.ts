@@ -12,6 +12,7 @@ import {
 } from "../src/render/ffmpeg.ts";
 import { LocalImageProvider, LocalBackendUnavailableError } from "../src/render/local-backends.ts";
 import { RenderService } from "../src/render/render-service.ts";
+import { resolveFontFile } from "../src/render/fonts.ts";
 import { createApiServer, listen } from "../src/api/server.ts";
 import { EpisodeOrchestrator } from "../src/orchestrator/orchestrator.ts";
 import { JsonMemoryStore } from "../src/memory/json-memory-store.ts";
@@ -102,6 +103,31 @@ test(
       // Persisted onto the episode.
       const mem = await store.load(asChannelId("tiny-explorers"));
       assert.equal(mem!.episodes[0]!.render?.hasVideo, true);
+    });
+  },
+);
+
+test(
+  "RenderService renders with an explicit ACF_FONT_FILE (Windows-safe drawtext/subtitles path)",
+  { skip: !HAS_FFMPEG },
+  async () => {
+    const font = resolveFontFile();
+    // Only meaningful when the host actually has a resolvable font.
+    if (!font) return;
+    await withDir(async (dir) => {
+      const store = new JsonMemoryStore(join(dir, "mem"));
+      await store.save(sampleChannel());
+      await new EpisodeOrchestrator(store, localRegistry()).createEpisode(asChannelId("tiny-explorers"), { number: 4 });
+
+      // Passing the font via the service env exercises the explicit-fontfile + generated
+      // Fontconfig code path (the fix for the Windows Fontconfig crash).
+      const env = { ...process.env, ACF_FONT_FILE: font };
+      const result = await new RenderService(store, join(dir, "out"), env).render(asChannelId("tiny-explorers"), 4);
+      assert.equal(result.hasVideo, true);
+      assert.equal(result.hasAudio, true);
+
+      // The portable fonts.conf was generated in the render workdir.
+      assert.ok(existsSync(join(dir, "out", "tiny-explorers-ep4", "fontconfig", "fonts.conf")));
     });
   },
 );

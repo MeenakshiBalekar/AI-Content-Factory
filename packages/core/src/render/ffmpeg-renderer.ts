@@ -1,4 +1,5 @@
 import { runFfmpeg } from "./ffmpeg.ts";
+import { ffFilterPath, type FontContext } from "./fonts.ts";
 import type { RenderPlan } from "./asset-resolver.ts";
 
 /**
@@ -6,9 +7,13 @@ import type { RenderPlan } from "./asset-resolver.ts";
  * hand: per-beat Ken Burns pan/zoom on the still, xfade transitions between beats, per-beat
  * audio concatenated, optional background-music mix, subtitles burned in, encoded H.264/AAC.
  * Pure local assembly — no network. Throws FfmpegError on failure.
+ *
+ * The optional FontContext makes subtitle burn-in portable: libass gets a `fontsdir` and the
+ * ffmpeg child gets FONTCONFIG_FILE/PATH, so it never depends on the system Fontconfig (the
+ * Windows crash). Passing no context keeps prior behavior on systems with working Fontconfig.
  */
 export class FFmpegRenderer {
-  async render(plan: RenderPlan, outPath: string): Promise<void> {
+  async render(plan: RenderPlan, outPath: string, fonts?: FontContext): Promise<void> {
     if (plan.beats.length === 0) throw new Error("render plan has no beats");
     const { width, height, fps, transitionSec: T } = plan;
 
@@ -55,10 +60,13 @@ export class FFmpegRenderer {
       videoLabel = "vmerged";
     }
 
-    // Burn subtitles if present. FFmpeg's subtitles filter needs a filesystem path; escape ':'.
+    // Burn subtitles if present. The subtitles (libass) filter is given the SRT path plus a
+    // fontsdir so it can find our resolved font without the system Fontconfig; the ffmpeg
+    // child also gets FONTCONFIG_FILE via `fonts.env` (see render call below).
     if (plan.srtPath) {
-      const escaped = plan.srtPath.replace(/\\/g, "/").replace(/:/g, "\\:");
-      filters.push(`[${videoLabel}]subtitles='${escaped}'[vout]`);
+      const parts2 = [`filename='${ffFilterPath(plan.srtPath)}'`];
+      if (fonts?.fontDir) parts2.push(`fontsdir='${ffFilterPath(fonts.fontDir)}'`);
+      filters.push(`[${videoLabel}]subtitles=${parts2.join(":")}[vout]`);
       videoLabel = "vout";
     }
 
@@ -88,6 +96,6 @@ export class FFmpegRenderer {
       "-shortest",
       outPath,
     ];
-    await runFfmpeg(args, 600_000);
+    await runFfmpeg(args, 600_000, fonts?.env ? { ...fonts.env } : undefined);
   }
 }

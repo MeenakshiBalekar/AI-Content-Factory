@@ -112,4 +112,28 @@ fees, not the cost of running the hardware.
 | `ACF_SPEECH_MODEL` | TTS model/voice engine | `kokoro` |
 | `ACF_MUSIC_FILE` | Path to a real music bed to mix in | (unset) |
 | `ACF_MUSIC_TONE` | `1` → generate a procedural tone bed | (unset) |
+| `ACF_FONT_FILE` | Font file for on-screen text + subtitles (see Windows note) | per-OS system font |
 | `ACF_FFMPEG_BIN` / `ACF_FFPROBE_BIN` | Override FFmpeg binaries | `ffmpeg` / `ffprobe` |
+
+## Windows note — Fontconfig ("Cannot load default config file")
+
+Stock Windows FFmpeg builds ship no default `fonts.conf`, so FFmpeg's `drawtext` and the
+`subtitles` (libass) filter used to abort with `Fontconfig error: Cannot load default config
+file` and exit code `3221225477`. The renderer now avoids that entirely and portably:
+
+- `drawtext` is always given an explicit `fontfile=`, so it never touches Fontconfig.
+- For the `subtitles` filter (libass always inits Fontconfig), the renderer generates a
+  minimal, valid `fonts.conf` in the render workdir and sets `FONTCONFIG_FILE`/`FONTCONFIG_PATH`
+  for the FFmpeg process, plus passes the font directory as `fontsdir`.
+
+The font is taken from `ACF_FONT_FILE` if set, otherwise a per-OS system font (Segoe UI /
+Arial on Windows, DejaVu / Liberation on Linux, Arial / Helvetica on macOS). No path is
+hardcoded. On Windows you can be explicit:
+
+```powershell
+$env:ACF_FONT_FILE="C:\Windows\Fonts\segoeui.ttf"
+node src/cli.ts render tiny-explorers 4 --dir .acf-memory --renders .acf-renders
+```
+
+If `ACF_FONT_FILE` is set but the file does not exist, the render fails fast with a clear
+`FontNotFoundError` rather than crashing inside FFmpeg.

@@ -32,9 +32,21 @@ export class FfmpegNotInstalledError extends Error {
   }
 }
 
-function run(bin: string, args: readonly string[], timeoutMs: number): Promise<string> {
+function run(
+  bin: string,
+  args: readonly string[],
+  timeoutMs: number,
+  envOverride?: Record<string, string>,
+): Promise<string> {
+  const options = {
+    timeout: timeoutMs,
+    maxBuffer: 16 * 1024 * 1024,
+    // Merge overrides onto the full parent env so PATH etc. are preserved; used to inject
+    // FONTCONFIG_FILE/PATH so libass initializes without the system Fontconfig.
+    ...(envOverride ? { env: { ...process.env, ...envOverride } } : {}),
+  };
   return new Promise((resolve, reject) => {
-    execFile(bin, args, { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(bin, args, options, (err, stdout, stderr) => {
       if (err) {
         const e = err as NodeJS.ErrnoException;
         if (e.code === "ENOENT") return reject(new FfmpegNotInstalledError(bin));
@@ -64,9 +76,14 @@ export async function checkFfprobe(bin = FFPROBE_BIN): Promise<boolean> {
   }
 }
 
-/** Run ffmpeg with an explicit arg list (no shell), throwing FfmpegError on failure. */
-export async function runFfmpeg(args: readonly string[], timeoutMs = 300_000): Promise<void> {
-  await run(FFMPEG_BIN, args, timeoutMs);
+/** Run ffmpeg with an explicit arg list (no shell), throwing FfmpegError on failure.
+ *  `envOverride` is merged onto the parent env (used for FONTCONFIG_FILE/PATH). */
+export async function runFfmpeg(
+  args: readonly string[],
+  timeoutMs = 300_000,
+  envOverride?: Record<string, string>,
+): Promise<void> {
+  await run(FFMPEG_BIN, args, timeoutMs, envOverride);
 }
 
 export interface MediaProbe {

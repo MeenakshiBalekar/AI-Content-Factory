@@ -9,6 +9,7 @@ import {
 import { checkFfmpeg, FfmpegError, FfmpegNotInstalledError, probeMedia } from "./ffmpeg.ts";
 import { AssetResolver } from "./asset-resolver.ts";
 import { FFmpegRenderer } from "./ffmpeg-renderer.ts";
+import { buildFontContext } from "./fonts.ts";
 
 export type RenderResult = NonNullable<Episode["render"]>;
 
@@ -41,9 +42,13 @@ export class RenderService {
     const workdir = join(this.#root, `${channelId}-ep${episodeNumber}`);
     await mkdir(workdir, { recursive: true });
 
-    const plan = await new AssetResolver(memory, join(workdir, "assets"), this.#env).resolve(episode);
+    // Resolve a font + generate a portable Fontconfig so drawtext/libass never depend on the
+    // system config (the Windows "Cannot load default config file" crash).
+    const fonts = await buildFontContext(workdir, this.#env);
+
+    const plan = await new AssetResolver(memory, join(workdir, "assets"), this.#env, fonts).resolve(episode);
     const outPath = join(workdir, "episode.mp4");
-    await new FFmpegRenderer().render(plan, outPath);
+    await new FFmpegRenderer().render(plan, outPath, fonts);
 
     // Validate the real output before claiming success.
     const probe = await probeMedia(outPath);

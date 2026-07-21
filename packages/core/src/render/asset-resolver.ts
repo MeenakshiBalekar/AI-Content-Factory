@@ -11,6 +11,7 @@ import {
   LocalSpeechProvider,
   localBackendConfig,
 } from "./local-backends.ts";
+import type { FontContext } from "./fonts.ts";
 
 /**
  * Resolves an episode's beats into REAL files on disk for the renderer. For each capability it
@@ -55,11 +56,18 @@ export class AssetResolver {
   readonly #memory: ChannelMemory;
   readonly #workdir: string;
   readonly #env: Record<string, string | undefined>;
+  readonly #fonts: FontContext | undefined;
 
-  constructor(memory: ChannelMemory, workdir: string, env: Record<string, string | undefined> = process.env) {
+  constructor(
+    memory: ChannelMemory,
+    workdir: string,
+    env: Record<string, string | undefined> = process.env,
+    fonts?: FontContext,
+  ) {
     this.#memory = memory;
     this.#workdir = workdir;
     this.#env = env;
+    this.#fonts = fonts;
   }
 
   async resolve(episode: Episode): Promise<RenderPlan> {
@@ -91,6 +99,8 @@ export class AssetResolver {
           outPath: imagePath,
           title: this.#beatTitle(beat.index),
           subtitle: beat.summary,
+          fontFile: this.#fonts?.fontFile,
+          env: this.#fonts?.env ? { ...this.#fonts.env } : undefined,
           hexColor: this.#beatColor(beat.characterIds[0]),
           width,
           height,
