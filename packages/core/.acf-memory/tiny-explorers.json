@@ -1,0 +1,892 @@
+{
+  "channel": {
+    "id": "tiny-explorers",
+    "name": "Tiny Explorers",
+    "premise": "A gentle preschool adventure series where Milo the fox and Bea the bee solve small problems with curiosity and teamwork, teaching one simple life lesson per episode.",
+    "audience": "kids 4-7 and their parents",
+    "language": "en-US",
+    "style": {
+      "animationStyle": "soft 3D, rounded shapes, pastel storybook look",
+      "aspectRatio": "16:9",
+      "resolution": "4k",
+      "colorGrade": "warm, high-key, gentle contrast",
+      "thumbnailStyle": "big expressive hero face, 3-word caption, sunny yellow accent bar",
+      "subtitleStyle": "bottom center, rounded white, max 2 lines"
+    },
+    "format": {
+      "targetDurationSec": 180,
+      "backgroundMusicMood": "gentle ukulele and glockenspiel, playful and warm",
+      "hookPattern": "open on the hero mid-question, promise a tiny mystery in the first 3 seconds"
+    },
+    "performance": {
+      "bestHooks": [
+        "What's THAT sound?",
+        "Uh oh — a wobbly bridge!"
+      ],
+      "avgViewDurationSec": 142,
+      "notes": [
+        "retention dips at the 90s mark — keep act 2 under 45s"
+      ]
+    },
+    "schedule": {
+      "cadence": "daily 16:00 America/Los_Angeles",
+      "platforms": [
+        "youtube",
+        "youtube-shorts"
+      ]
+    },
+    "createdAt": "2026-07-21T00:00:00.000Z"
+  },
+  "characters": {
+    "milo": {
+      "id": "milo",
+      "name": "Milo",
+      "voiceId": "milo-voice",
+      "appearance": {
+        "species": "red fox cub",
+        "ageDescription": "6 years old",
+        "build": "small and round",
+        "face": "bright and friendly with a little black nose",
+        "hair": "fluffy orange fur with a cream chest and white-tipped tail",
+        "eyes": "large amber eyes",
+        "outfit": "teal explorer vest with brass buttons",
+        "accessories": [
+          "red scarf",
+          "tiny leather map satchel"
+        ],
+        "palette": [
+          "#E8622C",
+          "#FFF3E0",
+          "#1F8A8A"
+        ]
+      },
+      "personality": {
+        "traits": [
+          "curious",
+          "brave",
+          "kind"
+        ],
+        "catchphrases": [
+          "Let's find out!",
+          "One step at a time."
+        ],
+        "speakingStyle": "excitable, asks lots of questions",
+        "relationships": {
+          "bea": "best friend"
+        }
+      },
+      "createdAt": "2026-07-21T00:00:00.000Z"
+    },
+    "bea": {
+      "id": "bea",
+      "name": "Bea",
+      "voiceId": "bea-voice",
+      "appearance": {
+        "species": "honeybee",
+        "ageDescription": "young",
+        "build": "tiny and rounded",
+        "face": "cheerful with big friendly eyes",
+        "hair": "fuzzy black-and-gold striped body",
+        "eyes": "large sparkling black eyes",
+        "outfit": "translucent lacy wings",
+        "accessories": [
+          "yellow flight goggles"
+        ],
+        "palette": [
+          "#F4C430",
+          "#2B2B2B"
+        ]
+      },
+      "personality": {
+        "traits": [
+          "clever",
+          "cautious",
+          "loyal"
+        ],
+        "catchphrases": [
+          "Let me think...",
+          "Buzz-tastic!"
+        ],
+        "speakingStyle": "quick and thoughtful",
+        "relationships": {
+          "milo": "best friend"
+        }
+      },
+      "createdAt": "2026-07-21T00:00:00.000Z"
+    }
+  },
+  "voices": {
+    "milo-voice": {
+      "id": "milo-voice",
+      "label": "Milo — warm young narrator",
+      "providerVoiceRef": "voice:warm-child-male-01",
+      "language": "en-US",
+      "accent": "neutral",
+      "pitch": 3,
+      "speed": 1.05,
+      "energy": 0.8,
+      "emotions": [
+        "excited",
+        "neutral",
+        "curious",
+        "proud"
+      ]
+    },
+    "bea-voice": {
+      "id": "bea-voice",
+      "label": "Bea — bright quick",
+      "providerVoiceRef": "voice:bright-child-female-02",
+      "language": "en-US",
+      "accent": "neutral",
+      "pitch": 5,
+      "speed": 1.1,
+      "energy": 0.85,
+      "emotions": [
+        "thoughtful",
+        "neutral",
+        "delighted"
+      ]
+    }
+  },
+  "environments": {
+    "treehouse": {
+      "id": "treehouse",
+      "name": "Treehouse",
+      "description": "cozy treehouse interior full of maps and jars",
+      "lighting": "warm golden-hour rim light through a round window",
+      "props": [
+        "acorn lantern",
+        "rope ladder",
+        "wall of hand-drawn maps"
+      ],
+      "materials": [
+        "worn oak planks",
+        "woven grass rug"
+      ],
+      "mood": "safe, adventurous, warm",
+      "cameraLanguage": "eye-level medium shots, gentle handheld",
+      "timeOfDay": "golden hour",
+      "weather": "clear"
+    },
+    "meadow": {
+      "id": "meadow",
+      "name": "Sunny Meadow",
+      "description": "wide flowering meadow with a wobbly log bridge over a brook",
+      "lighting": "soft midday sun, bright and even",
+      "props": [
+        "log bridge",
+        "clusters of daisies",
+        "babbling brook"
+      ],
+      "materials": [
+        "dewy grass",
+        "mossy logs"
+      ],
+      "mood": "open, cheerful, a little exciting",
+      "cameraLanguage": "wide establishing shots, slow push-ins",
+      "timeOfDay": "midday",
+      "weather": "clear with a gentle breeze"
+    }
+  },
+  "episodes": [
+    {
+      "id": "tiny-explorers-ep-4",
+      "channelId": "tiny-explorers",
+      "number": 4,
+      "title": "Milo and the Treehouse",
+      "logline": "Milo's curious spirit leads to a new adventure (episode 4).",
+      "beats": [
+        {
+          "index": 0,
+          "summary": "Milo sets out, full of curious.",
+          "characterIds": [
+            "milo",
+            "bea"
+          ],
+          "environmentId": "treehouse",
+          "dialogue": [
+            {
+              "characterId": "milo",
+              "line": "Let's find out!"
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "summary": "A challenge appears and Milo must think it through.",
+          "characterIds": [
+            "milo",
+            "bea"
+          ],
+          "environmentId": "meadow",
+          "dialogue": [
+            {
+              "characterId": "bea",
+              "line": "That looks tricky — what do we do?"
+            },
+            {
+              "characterId": "milo",
+              "line": "Every problem has a first step. Let's find it."
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "summary": "Milo succeeds and shares the lesson of the day.",
+          "characterIds": [
+            "milo",
+            "bea"
+          ],
+          "environmentId": "treehouse",
+          "dialogue": [
+            {
+              "characterId": "milo",
+              "line": "We did it — together, one step at a time!"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "story",
+          "label": "Story outline",
+          "prompt": "Channel: A gentle preschool adventure series where Milo the fox and Bea the bee solve small problems with curiosity and teamwork, teaching one simple life lesson per episode.\nAudience: kids 4-7 and their parents\nPrevious: none\nProven high-retention hooks to emulate: \"What's THAT sound?\"; \"Uh oh — a wobbly bridge!\"\nChannel avg view duration: 142s — front-load the payoff.\nPlan episode 4: Milo's curious spirit leads to a new adventure (episode 4).",
+          "provider": "local",
+          "status": "succeeded",
+          "meta": {
+            "chars": 193,
+            "learnedHooks": 2
+          }
+        },
+        {
+          "kind": "script",
+          "label": "Script & dialogue",
+          "prompt": "Beat 1: Milo sets out, full of curious.\n  milo: Let's find out!\n\nBeat 2: A challenge appears and Milo must think it through.\n  bea: That looks tricky — what do we do?\n  milo: Every problem has a first step. Let's find it.\n\nBeat 3: Milo succeeds and shares the lesson of the day.\n  milo: We did it — together, one step at a time!",
+          "provider": "local",
+          "status": "succeeded",
+          "meta": {
+            "beats": 3
+          }
+        },
+        {
+          "kind": "storyboard",
+          "label": "Beat 1 board",
+          "prompt": "Milo sets out, full of curious.",
+          "provider": "internal",
+          "status": "succeeded",
+          "meta": {
+            "beat": 0
+          }
+        },
+        {
+          "kind": "storyboard",
+          "label": "Beat 2 board",
+          "prompt": "A challenge appears and Milo must think it through.",
+          "provider": "internal",
+          "status": "succeeded",
+          "meta": {
+            "beat": 1
+          }
+        },
+        {
+          "kind": "storyboard",
+          "label": "Beat 3 board",
+          "prompt": "Milo succeeds and shares the lesson of the day.",
+          "provider": "internal",
+          "status": "succeeded",
+          "meta": {
+            "beat": 2
+          }
+        },
+        {
+          "kind": "image",
+          "label": "Keyframe beat 1",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: Milo sets out, full of curious.\nSetting: cozy treehouse interior full of maps and jars. Lighting: warm golden-hour rim light through a round window. Props: acorn lantern, rope ladder, wall of hand-drawn maps. Mood: safe, adventurous, warm.\nCamera: eye-level medium shots, gentle handheld. Time: golden hour, weather clear.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://image/c611e0597f74e715.png",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 0,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "image",
+          "label": "Keyframe beat 2",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: A challenge appears and Milo must think it through.\nSetting: wide flowering meadow with a wobbly log bridge over a brook. Lighting: soft midday sun, bright and even. Props: log bridge, clusters of daisies, babbling brook. Mood: open, cheerful, a little exciting.\nCamera: wide establishing shots, slow push-ins. Time: midday, weather clear with a gentle breeze.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://image/dddc2b29ed5d6376.png",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 1,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "image",
+          "label": "Keyframe beat 3",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: Milo succeeds and shares the lesson of the day.\nSetting: cozy treehouse interior full of maps and jars. Lighting: warm golden-hour rim light through a round window. Props: acorn lantern, rope ladder, wall of hand-drawn maps. Mood: safe, adventurous, warm.\nCamera: eye-level medium shots, gentle handheld. Time: golden hour, weather clear.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://image/03dbcb9957d51a09.png",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 2,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "voice",
+          "label": "Line: milo",
+          "prompt": "Let's find out!",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/5a5e640010d0b9ff.mp3",
+          "meta": {
+            "voice": "voice:warm-child-male-01",
+            "emotion": "excited"
+          }
+        },
+        {
+          "kind": "voice",
+          "label": "Line: bea",
+          "prompt": "That looks tricky — what do we do?",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/c7dd0f9ed5ebaa19.mp3",
+          "meta": {
+            "voice": "voice:bright-child-female-02",
+            "emotion": "thoughtful"
+          }
+        },
+        {
+          "kind": "voice",
+          "label": "Line: milo",
+          "prompt": "Every problem has a first step. Let's find it.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/20401fc52ed98ae3.mp3",
+          "meta": {
+            "voice": "voice:warm-child-male-01",
+            "emotion": "excited"
+          }
+        },
+        {
+          "kind": "voice",
+          "label": "Line: milo",
+          "prompt": "We did it — together, one step at a time!",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/5b15772600635391.mp3",
+          "meta": {
+            "voice": "voice:warm-child-male-01",
+            "emotion": "excited"
+          }
+        },
+        {
+          "kind": "music",
+          "label": "Background music",
+          "prompt": "Instrumental background music, gentle ukulele and glockenspiel, playful and warm, loops cleanly, no vocals.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/4b2b7f6456f2bf8c.mp3"
+        },
+        {
+          "kind": "video",
+          "label": "Animate beat 1",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: Milo sets out, full of curious.\nSetting: cozy treehouse interior full of maps and jars. Lighting: warm golden-hour rim light through a round window. Props: acorn lantern, rope ladder, wall of hand-drawn maps. Mood: safe, adventurous, warm.\nCamera: eye-level medium shots, gentle handheld. Time: golden hour, weather clear.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://video/ab81e3a0499ee077.mp4",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 0,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "video",
+          "label": "Animate beat 2",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: A challenge appears and Milo must think it through.\nSetting: wide flowering meadow with a wobbly log bridge over a brook. Lighting: soft midday sun, bright and even. Props: log bridge, clusters of daisies, babbling brook. Mood: open, cheerful, a little exciting.\nCamera: wide establishing shots, slow push-ins. Time: midday, weather clear with a gentle breeze.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://video/edad34907a413143.mp4",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 1,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "video",
+          "label": "Animate beat 3",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: Milo succeeds and shares the lesson of the day.\nSetting: cozy treehouse interior full of maps and jars. Lighting: warm golden-hour rim light through a round window. Props: acorn lantern, rope ladder, wall of hand-drawn maps. Mood: safe, adventurous, warm.\nCamera: eye-level medium shots, gentle handheld. Time: golden hour, weather clear.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://video/feeba74fee703dbb.mp4",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 2,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "subtitles",
+          "label": "Subtitles (SRT)",
+          "prompt": "1\n00:00:00,000 --> 00:00:02,500\nLet's find out!\n\n2\n00:00:03,000 --> 00:00:05,500\nThat looks tricky — what do we do?\n\n3\n00:00:06,000 --> 00:00:08,500\nEvery problem has a first step. Let's find\nit.\n\n4\n00:00:09,000 --> 00:00:11,500\nWe did it — together, one step at a time!",
+          "provider": "internal",
+          "status": "succeeded",
+          "meta": {
+            "cues": 4
+          }
+        },
+        {
+          "kind": "thumbnail",
+          "label": "Thumbnail",
+          "prompt": "Thumbnail. big expressive hero face, 3-word caption, sunny yellow accent bar.\nHero: Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A.\nBig expressive emotion. Caption text: \"and the Treehouse\".\nPalette: #E8622C #FFF3E0 #1F8A8A.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://image/719eebbde0772bb5.png",
+          "meta": {
+            "seed": 808034815,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "metadata",
+          "label": "YouTube metadata",
+          "prompt": "Write YouTube title, description and 10 tags for \"Milo and the Treehouse\" — Milo's curious spirit leads to a new adventure (episode 4).. Audience: kids 4-7 and their parents.",
+          "provider": "local",
+          "status": "succeeded"
+        }
+      ],
+      "quality": {
+        "stages": [
+          {
+            "kind": "story",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "script",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "storyboard",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "image",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "voice",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "music",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "video",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "subtitles",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "thumbnail",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "metadata",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          }
+        ],
+        "passed": true,
+        "totalRegenerations": 0
+      },
+      "workflowId": "standard",
+      "createdAt": "2026-07-21T12:55:46.489Z",
+      "render": {
+        "outputPath": "C:\\WINDOWS\\System32\\AI-Content-Factory\\packages\\core\\.acf-renders\\tiny-explorers-ep4\\episode.mp4",
+        "sizeBytes": 106121,
+        "durationSec": 10.16,
+        "hasVideo": true,
+        "hasAudio": true,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "width": 1280,
+        "height": 720,
+        "imageSource": "procedural-placeholder",
+        "audioSource": "procedural-silence",
+        "musicSource": "none",
+        "renderedAt": "2026-07-21T18:39:22.547Z"
+      }
+    },
+    {
+      "id": "tiny-explorers-ep-5",
+      "channelId": "tiny-explorers",
+      "number": 5,
+      "title": "Milo and the Sunny Meadow",
+      "logline": "Following on from \"Milo and the Treehouse\", Milo's curious spirit leads to a new adventure (episode 5).",
+      "beats": [
+        {
+          "index": 0,
+          "summary": "Milo sets out, full of curious.",
+          "characterIds": [
+            "milo",
+            "bea"
+          ],
+          "environmentId": "meadow",
+          "dialogue": [
+            {
+              "characterId": "milo",
+              "line": "Let's find out!"
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "summary": "A challenge appears and Milo must think it through.",
+          "characterIds": [
+            "milo",
+            "bea"
+          ],
+          "environmentId": "treehouse",
+          "dialogue": [
+            {
+              "characterId": "bea",
+              "line": "That looks tricky — what do we do?"
+            },
+            {
+              "characterId": "milo",
+              "line": "Every problem has a first step. Let's find it."
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "summary": "Milo succeeds and shares the lesson of the day.",
+          "characterIds": [
+            "milo",
+            "bea"
+          ],
+          "environmentId": "meadow",
+          "dialogue": [
+            {
+              "characterId": "milo",
+              "line": "We did it — together, one step at a time!"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "kind": "story",
+          "label": "Story outline",
+          "prompt": "Channel: A gentle preschool adventure series where Milo the fox and Bea the bee solve small problems with curiosity and teamwork, teaching one simple life lesson per episode.\nAudience: kids 4-7 and their parents\nPrevious: Milo and the Treehouse\nProven high-retention hooks to emulate: \"What's THAT sound?\"; \"Uh oh — a wobbly bridge!\"\nChannel avg view duration: 142s — front-load the payoff.\nPlan episode 5: Following on from \"Milo and the Treehouse\", Milo's curious spirit leads to a new adventure (episode 5).",
+          "provider": "local",
+          "status": "succeeded",
+          "meta": {
+            "chars": 193,
+            "learnedHooks": 2
+          }
+        },
+        {
+          "kind": "script",
+          "label": "Script & dialogue",
+          "prompt": "Beat 1: Milo sets out, full of curious.\n  milo: Let's find out!\n\nBeat 2: A challenge appears and Milo must think it through.\n  bea: That looks tricky — what do we do?\n  milo: Every problem has a first step. Let's find it.\n\nBeat 3: Milo succeeds and shares the lesson of the day.\n  milo: We did it — together, one step at a time!",
+          "provider": "local",
+          "status": "succeeded",
+          "meta": {
+            "beats": 3
+          }
+        },
+        {
+          "kind": "storyboard",
+          "label": "Beat 1 board",
+          "prompt": "Milo sets out, full of curious.",
+          "provider": "internal",
+          "status": "succeeded",
+          "meta": {
+            "beat": 0
+          }
+        },
+        {
+          "kind": "storyboard",
+          "label": "Beat 2 board",
+          "prompt": "A challenge appears and Milo must think it through.",
+          "provider": "internal",
+          "status": "succeeded",
+          "meta": {
+            "beat": 1
+          }
+        },
+        {
+          "kind": "storyboard",
+          "label": "Beat 3 board",
+          "prompt": "Milo succeeds and shares the lesson of the day.",
+          "provider": "internal",
+          "status": "succeeded",
+          "meta": {
+            "beat": 2
+          }
+        },
+        {
+          "kind": "image",
+          "label": "Keyframe beat 1",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: Milo sets out, full of curious.\nSetting: wide flowering meadow with a wobbly log bridge over a brook. Lighting: soft midday sun, bright and even. Props: log bridge, clusters of daisies, babbling brook. Mood: open, cheerful, a little exciting.\nCamera: wide establishing shots, slow push-ins. Time: midday, weather clear with a gentle breeze.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://image/c28d92772d659adb.png",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 0,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "image",
+          "label": "Keyframe beat 2",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: A challenge appears and Milo must think it through.\nSetting: cozy treehouse interior full of maps and jars. Lighting: warm golden-hour rim light through a round window. Props: acorn lantern, rope ladder, wall of hand-drawn maps. Mood: safe, adventurous, warm.\nCamera: eye-level medium shots, gentle handheld. Time: golden hour, weather clear.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://image/5484caf41816ec9f.png",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 1,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "image",
+          "label": "Keyframe beat 3",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: Milo succeeds and shares the lesson of the day.\nSetting: wide flowering meadow with a wobbly log bridge over a brook. Lighting: soft midday sun, bright and even. Props: log bridge, clusters of daisies, babbling brook. Mood: open, cheerful, a little exciting.\nCamera: wide establishing shots, slow push-ins. Time: midday, weather clear with a gentle breeze.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://image/043a775e1c7062d8.png",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 2,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "voice",
+          "label": "Line: milo",
+          "prompt": "Let's find out!",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/5a5e640010d0b9ff.mp3",
+          "meta": {
+            "voice": "voice:warm-child-male-01",
+            "emotion": "excited"
+          }
+        },
+        {
+          "kind": "voice",
+          "label": "Line: bea",
+          "prompt": "That looks tricky — what do we do?",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/c7dd0f9ed5ebaa19.mp3",
+          "meta": {
+            "voice": "voice:bright-child-female-02",
+            "emotion": "thoughtful"
+          }
+        },
+        {
+          "kind": "voice",
+          "label": "Line: milo",
+          "prompt": "Every problem has a first step. Let's find it.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/20401fc52ed98ae3.mp3",
+          "meta": {
+            "voice": "voice:warm-child-male-01",
+            "emotion": "excited"
+          }
+        },
+        {
+          "kind": "voice",
+          "label": "Line: milo",
+          "prompt": "We did it — together, one step at a time!",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/5b15772600635391.mp3",
+          "meta": {
+            "voice": "voice:warm-child-male-01",
+            "emotion": "excited"
+          }
+        },
+        {
+          "kind": "music",
+          "label": "Background music",
+          "prompt": "Instrumental background music, gentle ukulele and glockenspiel, playful and warm, loops cleanly, no vocals.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://audio/4b2b7f6456f2bf8c.mp3"
+        },
+        {
+          "kind": "video",
+          "label": "Animate beat 1",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: Milo sets out, full of curious.\nSetting: wide flowering meadow with a wobbly log bridge over a brook. Lighting: soft midday sun, bright and even. Props: log bridge, clusters of daisies, babbling brook. Mood: open, cheerful, a little exciting.\nCamera: wide establishing shots, slow push-ins. Time: midday, weather clear with a gentle breeze.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://video/2269f8e2a3a581b8.mp4",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 0,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "video",
+          "label": "Animate beat 2",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: A challenge appears and Milo must think it through.\nSetting: cozy treehouse interior full of maps and jars. Lighting: warm golden-hour rim light through a round window. Props: acorn lantern, rope ladder, wall of hand-drawn maps. Mood: safe, adventurous, warm.\nCamera: eye-level medium shots, gentle handheld. Time: golden hour, weather clear.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://video/68cb61d578ed853b.mp4",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 1,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "video",
+          "label": "Animate beat 3",
+          "prompt": "Style: soft 3D, rounded shapes, pastel storybook look; color grade warm, high-key, gentle contrast; 16:9 4k.\nScene: Milo succeeds and shares the lesson of the day.\nSetting: wide flowering meadow with a wobbly log bridge over a brook. Lighting: soft midday sun, bright and even. Props: log bridge, clusters of daisies, babbling brook. Mood: open, cheerful, a little exciting.\nCamera: wide establishing shots, slow push-ins. Time: midday, weather clear with a gentle breeze.\nCharacters (keep exactly consistent): Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A. Bea, a young honeybee, tiny and rounded, with fuzzy black-and-gold striped body and large sparkling black eyes; cheerful with big friendly eyes; dressed in translucent lacy wings, wearing yellow flight goggles. Signature palette: #F4C430, #2B2B2B.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://video/af8c69db393515b8.mp4",
+          "meta": {
+            "seed": 1308819593,
+            "beat": 2,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "subtitles",
+          "label": "Subtitles (SRT)",
+          "prompt": "1\n00:00:00,000 --> 00:00:02,500\nLet's find out!\n\n2\n00:00:03,000 --> 00:00:05,500\nThat looks tricky — what do we do?\n\n3\n00:00:06,000 --> 00:00:08,500\nEvery problem has a first step. Let's find\nit.\n\n4\n00:00:09,000 --> 00:00:11,500\nWe did it — together, one step at a time!",
+          "provider": "internal",
+          "status": "succeeded",
+          "meta": {
+            "cues": 4
+          }
+        },
+        {
+          "kind": "thumbnail",
+          "label": "Thumbnail",
+          "prompt": "Thumbnail. big expressive hero face, 3-word caption, sunny yellow accent bar.\nHero: Milo, a 6 years old red fox cub, small and round, with fluffy orange fur with a cream chest and white-tipped tail and large amber eyes; bright and friendly with a little black nose; dressed in teal explorer vest with brass buttons, wearing red scarf and tiny leather map satchel. Signature palette: #E8622C, #FFF3E0, #1F8A8A.\nBig expressive emotion. Caption text: \"the Sunny Meadow\".\nPalette: #E8622C #FFF3E0 #1F8A8A.",
+          "provider": "local",
+          "status": "succeeded",
+          "outputUri": "local://image/4a4e2fdfed0bb3d2.png",
+          "meta": {
+            "seed": 808034815,
+            "aspect": "16:9"
+          }
+        },
+        {
+          "kind": "metadata",
+          "label": "YouTube metadata",
+          "prompt": "Write YouTube title, description and 10 tags for \"Milo and the Sunny Meadow\" — Following on from \"Milo and the Treehouse\", Milo's curious spirit leads to a new adventure (episode 5).. Audience: kids 4-7 and their parents.",
+          "provider": "local",
+          "status": "succeeded"
+        }
+      ],
+      "quality": {
+        "stages": [
+          {
+            "kind": "story",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "script",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "storyboard",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "image",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "voice",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "music",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "video",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "subtitles",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "thumbnail",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          },
+          {
+            "kind": "metadata",
+            "attempts": 1,
+            "findings": [],
+            "passed": true
+          }
+        ],
+        "passed": true,
+        "totalRegenerations": 0
+      },
+      "workflowId": "standard",
+      "createdAt": "2026-07-21T13:03:21.514Z"
+    }
+  ]
+}
