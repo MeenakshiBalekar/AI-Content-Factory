@@ -18,6 +18,26 @@ export { PromptComposer } from "./prompt/prompt-composer.ts";
 export * from "./providers/provider.ts";
 export { LocalProvider } from "./providers/local-provider.ts";
 
+// Module 2 — real provider adapters and wiring.
+export { HttpClient, ProviderError, DEFAULT_RETRY } from "./providers/http/http-client.ts";
+export type { RetryPolicy, HttpRequest, HttpClientOptions } from "./providers/http/http-client.ts";
+export { loadProvidersConfig } from "./providers/http/config.ts";
+export type {
+  ProvidersConfig,
+  OpenAITextConfig,
+  OpenAIImageConfig,
+  ElevenLabsConfig,
+  AsyncVideoConfig,
+} from "./providers/http/config.ts";
+export { OpenAITextProvider } from "./providers/openai-text-provider.ts";
+export { OpenAIImageProvider } from "./providers/openai-image-provider.ts";
+export { ElevenLabsAudioProvider } from "./providers/elevenlabs-audio-provider.ts";
+export { AsyncVideoProvider } from "./providers/async-video-provider.ts";
+export { buildProviderRegistry } from "./providers/factory.ts";
+export type { BuildOptions, BuildResult, ProviderReport } from "./providers/factory.ts";
+export { FileObjectStore } from "./storage/object-store.ts";
+export type { ObjectStore } from "./storage/object-store.ts";
+
 export { DEFAULT_PRODUCTION_PLAN } from "./orchestrator/production-plan.ts";
 export type { ProductionStage } from "./orchestrator/production-plan.ts";
 export { StoryPlanner } from "./orchestrator/story-planner.ts";

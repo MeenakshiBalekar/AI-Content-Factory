@@ -44,12 +44,36 @@ npm i && npm run typecheck                 # strict TS (TS 5.8, all strict flags
 | Vendor independence | `providers/provider.ts` | Orchestrator depends only on capability interfaces; providers are adapters |
 | Episode planning | `orchestrator/orchestrator.ts` | Auto-increments episode number, threads the previous episode, records every prompt/output |
 
-## Architecture (this module)
+## Real providers (Module 2)
+
+By default every capability uses the free offline `LocalProvider`. Set the env vars below to
+route a capability to a real model — anything unset stays free/offline. Check what's wired:
+
+```bash
+node src/cli.ts providers                         # shows text/image/audio/video → provider ($$ or free)
+node src/cli.ts create tiny-explorers --local     # force free/offline regardless of env
+```
+
+| Capability | Env vars | Provider |
+| --- | --- | --- |
+| Text | `OPENAI_API_KEY` (`OPENAI_BASE_URL`, `ACF_TEXT_MODEL`) | OpenAI-compatible chat (Azure/Together/Groq/…) |
+| Image | `OPENAI_API_KEY` (`ACF_IMAGE_MODEL`) | OpenAI Images → bytes stored via `ObjectStore` |
+| Audio | `ELEVENLABS_API_KEY` (`ACF_TTS_MODEL`) | ElevenLabs TTS (locked voice id per character) |
+| Video | `ACF_VIDEO_API_KEY` + `ACF_VIDEO_SUBMIT_URL` + `ACF_VIDEO_STATUS_URL` | Async submit→poll (Veo/Runway/Kling/Genmax shape) |
+
+> ⚠️ **Real providers cost money per generation.** The `LocalProvider` is free only because it
+> emits placeholder URIs, not real media. The `providers` command marks billable capabilities.
+
+The orchestrator is **unchanged** between offline and real runs — only the registry wiring in
+`providers/factory.ts` differs.
+
+## Architecture
 
 ```
 CLI ─▶ EpisodeOrchestrator ─▶ StoryPlanner        (memory ─▶ beat sheet)
                            ─▶ PromptComposer      (memory ─▶ prompts)
-                           ─▶ ProviderRegistry    (capability ─▶ adapter)
+                           ─▶ ProviderRegistry ─▶ factory ─▶ {OpenAI, ElevenLabs, AsyncVideo}
+                           │                                  └▶ LocalProvider (free fallback)
                            ─▶ MemoryStore         (load channel, append episode)
 ```
 

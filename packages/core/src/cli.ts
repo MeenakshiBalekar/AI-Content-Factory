@@ -2,31 +2,24 @@
 import { parseArgs } from "node:util";
 import { EpisodeOrchestrator } from "./orchestrator/orchestrator.ts";
 import { JsonMemoryStore } from "./memory/json-memory-store.ts";
-import { LocalProvider } from "./providers/local-provider.ts";
-import { ProviderRegistry } from "./providers/provider.ts";
+import { buildProviderRegistry } from "./providers/factory.ts";
+import { FileObjectStore } from "./storage/object-store.ts";
 import { sampleChannel } from "./examples/sample-channel.ts";
 import { asChannelId } from "./domain/ids.ts";
 import type { EpisodeAsset } from "./domain/episode.ts";
 
 /**
- * Reference CLI for the episode kernel. It wires the local provider into the registry so the
- * whole pipeline runs offline; swapping in real providers is a one-line change here.
+ * Reference CLI for the episode kernel. Providers are chosen from the environment: set
+ * OPENAI_API_KEY / ELEVENLABS_API_KEY / ACF_VIDEO_* to use real models, otherwise each
+ * capability falls back to the free offline LocalProvider. `--local` forces offline mode.
  *
  *   node src/cli.ts seed
- *   node src/cli.ts create tiny-explorers --brief "learning to share"
- *   node src/cli.ts memory tiny-explorers
+ *   node src/cli.ts create tiny-explorers --brief "learning to share"   # real if keys set
+ *   node src/cli.ts create tiny-explorers --local                       # always free/offline
+ *   node src/cli.ts providers                                           # show what's wired
  */
 
 const DEFAULT_DIR = ".acf-memory";
-
-function buildRegistry(): ProviderRegistry {
-  const local = new LocalProvider();
-  return new ProviderRegistry()
-    .registerText(local)
-    .registerImage(local)
-    .registerAudio(local)
-    .registerVideo(local);
-}
 
 function summarize(assets: readonly EpisodeAsset[]): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -39,9 +32,11 @@ async function main(): Promise<number> {
     allowPositionals: true,
     options: {
       dir: { type: "string", default: DEFAULT_DIR },
+      assets: { type: "string", default: ".acf-assets" },
       brief: { type: "string" },
       number: { type: "string" },
       json: { type: "boolean", default: false },
+      local: { type: "boolean", default: false },
     },
   });
 
@@ -49,6 +44,15 @@ async function main(): Promise<number> {
   const store = new JsonMemoryStore(values.dir as string);
 
   switch (command) {
+    case "providers": {
+      const { report } = buildProviderRegistry({ forceLocal: values.local as boolean });
+      console.log("Provider wiring (local = free/offline placeholder, others cost money):");
+      for (const [cap, name] of Object.entries(report)) {
+        console.log(`  ${cap.padEnd(6)} → ${name}${name === "local" ? "  (free)" : "  ($$)"}`);
+      }
+      return 0;
+    }
+
     case "seed": {
       const mem = sampleChannel();
       await store.save(mem);
@@ -72,8 +76,15 @@ async function main(): Promise<number> {
     }
 
     case "create": {
-      if (!arg) return usage("create <channelId> [--brief ...] [--number N]");
-      const orchestrator = new EpisodeOrchestrator(store, buildRegistry());
+      if (!arg) return usage("create <channelId> [--brief ...] [--number N] [--local]");
+      const { registry, report } = buildProviderRegistry({
+        forceLocal: values.local as boolean,
+        objectStore: new FileObjectStore(values.assets as string),
+      });
+      if (!values.json) {
+        console.log(`providers: text=${report.text} image=${report.image} audio=${report.audio} video=${report.video}`);
+      }
+      const orchestrator = new EpisodeOrchestrator(store, registry);
       const episode = await orchestrator.createEpisode(
         asChannelId(arg),
         {
@@ -100,7 +111,7 @@ async function main(): Promise<number> {
     }
 
     default:
-      return usage("seed | channels | memory <id> | create <id>");
+      return usage("seed | channels | providers | memory <id> | create <id>");
   }
 }
 

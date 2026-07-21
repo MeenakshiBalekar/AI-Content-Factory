@@ -21,11 +21,27 @@ production plan. Zero-dependency strict TypeScript.
 
 ---
 
-### 🔜 Module 2 — Real Provider Adapters
-Implement `TextProvider`/`ImageProvider`/`AudioProvider`/`VideoProvider` against real
-vendors (Genmax HTTP, OpenAI/Anthropic, ElevenLabs, Runway/Veo). Add async video-handle
-polling, retries, cost/latency metadata, and health checks. **No orchestrator changes** —
-this proves the seam. Deliverable: `create` produces real media files.
+### ✅ Module 2 — Real Provider Adapters  *(built, 12 new tests — 28 total)*
+Real adapters behind the Module 1 capability interfaces, wired with **zero orchestrator
+changes** — proving the seam.
+
+- Shared `HttpClient`: per-request timeout (AbortSignal), exponential backoff + jitter on
+  429/5xx/network, typed `ProviderError`.
+- `OpenAITextProvider` (OpenAI-compatible chat — also Azure/Together/Groq/Fireworks).
+- `OpenAIImageProvider` (Images API → base64 → `ObjectStore`, content-addressed by seed).
+- `ElevenLabsAudioProvider` (TTS; locked `providerVoiceRef` = voice id, so voices stay
+  consistent; pitch/speed/emotion → voice settings).
+- `AsyncVideoProvider` (submit→poll "handle" flow used by Veo/Runway/Kling/Genmax).
+- `ObjectStore` abstraction + `FileObjectStore` (S3/Backblaze slot in here).
+- `buildProviderRegistry` factory: real provider per capability when its keys are present,
+  free `LocalProvider` fallback otherwise; `providers` CLI command reports cost ($$ vs free).
+- Contract-tested against local mock servers (no paid calls, green in CI).
+
+**Cost note:** real providers cost money per generation; the factory makes it explicit which
+capabilities are billable on any given run. See §4 of the design doc.
+
+**Remaining for Module 2.1:** a native Genmax HTTP adapter (needs Genmax's REST spec — its
+tools are exposed over MCP today), plus provider health checks and per-call cost metadata.
 
 ### ⬜ Module 3 — Persistence + API Surface
 `PostgresMemoryStore` (Prisma) behind the same `MemoryStore` interface; object storage for
