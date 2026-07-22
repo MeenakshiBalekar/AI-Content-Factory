@@ -18,6 +18,10 @@ export interface DirectOptions {
   readonly aspectRatio?: string;
   /** Force the deterministic path (skip the model). */
   readonly deterministic?: boolean;
+  /** A user-provided character description. When set, this exact character is used as the
+   *  canonical cast for every scene instead of one invented from the text. Accepts an
+   *  optional leading name, e.g. "Milo, a red fox cub in a teal vest". */
+  readonly character?: string;
 }
 
 const SYSTEM_PROMPT =
@@ -40,19 +44,22 @@ export class ContentDirector {
 
   async direct(input: string, opts: DirectOptions = {}): Promise<Storyboard> {
     const aspect = opts.aspectRatio ?? "16:9";
-    if (!opts.deterministic && this.#text) {
-      const viaModel = await this.#tryModel(input, aspect);
-      if (viaModel) return viaModel;
-    }
-    return decomposeDeterministically(input, aspect);
+    let sb: Storyboard | undefined;
+    if (!opts.deterministic && this.#text) sb = await this.#tryModel(input, aspect, opts.character);
+    if (!sb) sb = decomposeDeterministically(input, aspect);
+    // A user-provided character overrides the invented cast and is bound to every scene, so
+    // the SAME character performs all the actions (the AI Video Director's core promise).
+    if (opts.character && opts.character.trim()) sb = applyUserCharacter(sb, opts.character.trim());
+    return sb;
   }
 
-  async #tryModel(input: string, aspect: string): Promise<Storyboard | undefined> {
+  async #tryModel(input: string, aspect: string, character?: string): Promise<Storyboard | undefined> {
     let raw: string;
+    const characterLine = character?.trim() ? `Use EXACTLY this character in every scene: ${character.trim()}\n` : "";
     try {
       raw = await this.#text!.generateText({
         system: SYSTEM_PROMPT,
-        prompt: `Aspect ratio: ${aspect}\nContent:\n${input}`,
+        prompt: `Aspect ratio: ${aspect}\n${characterLine}Content:\n${input}`,
         maxTokens: 1200,
       });
     } catch {
@@ -125,6 +132,7 @@ function guessEnvironment(line: string): string {
   const l = line.toLowerCase();
   const map: [RegExp, string][] = [
     [/kitchen|eat|food|broccoli|carrot|cook|meal|fruit|veg/, "a bright, colorful kitchen"],
+    [/meadow|field|hill|grass|forest|wood/, "a sunny outdoor meadow"],
     [/garden|plant|flower|grow|tree|outside|park/, "a sunny garden"],
     [/sleep|bed|night|moon|star|dream/, "a cozy bedroom at night"],
     [/wash|bath|water|clean|teeth|brush/, "a cheerful bathroom"],
@@ -178,4 +186,47 @@ export function decomposeDeterministically(input: string, aspect = "16:9"): Stor
 function titleize(line: string): string {
   const words = line.replace(/[.!?]+$/, "").split(/\s+/).slice(0, 6).join(" ");
   return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** Split a user character string into an optional leading name + description.
+ *  "Milo, a red fox cub" -> { name: "Milo", description: "a red fox cub" }
+ *  "a friendly blue dinosaur" -> { name: "Hero", description: "a friendly blue dinosaur" } */
+export function parseCharacter(text: string): { name: string; description: string } {
+  const m = /^\s*([A-Z][\p{L}'-]{1,20})\s*[,:\-–]\s*(.+)$/su.exec(text);
+  if (m && !/^(a|an|the)$/i.test(m[1]!)) {
+    return { name: m[1]!, description: m[2]!.trim() };
+  }
+  return { name: "Hero", description: text.trim() };
+}
+
+/** Replace a storyboard's cast with the user's character, bound to every scene — including
+ *  rewriting any invented character name that leaked into the scene visuals/actions. */
+export function applyUserCharacter(sb: Storyboard, character: string): Storyboard {
+  const { name, description } = parseCharacter(character);
+  const spec: CharacterSpec = {
+    name,
+    description,
+    voice: "expressive, warm character voice",
+    palette: sb.characters[0]?.palette ?? ["#FFB703", "#FB8500", "#8ECAE6"],
+  };
+  const oldNames = sb.characters.map((c) => c.name).filter((n) => n && n !== name);
+  const rename = (text: string): string => {
+    let out = text;
+    for (const old of oldNames) out = out.replace(new RegExp(`\\b${escapeRe(old)}\\b`, "g"), name);
+    return out;
+  };
+  return {
+    ...sb,
+    characters: [spec],
+    scenes: sb.scenes.map((s) => ({
+      ...s,
+      characters: [name],
+      visual: rename(s.visual),
+      action: rename(s.action),
+    })),
+  };
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

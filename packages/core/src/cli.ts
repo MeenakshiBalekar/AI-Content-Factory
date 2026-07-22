@@ -60,6 +60,8 @@ async function main(): Promise<number> {
       render: { type: "boolean", default: false },
       workflow: { type: "string" },
       metrics: { type: "string" },
+      character: { type: "string" },
+      song: { type: "string" },
       exports: { type: "string", default: ".acf-exports" },
       renders: { type: "string", default: ".acf-renders" },
     },
@@ -90,12 +92,16 @@ async function main(): Promise<number> {
 
     case "video": {
       // Generic entry point: ANY rhyme/song/story text -> storyboard -> episode -> (optional) MP4.
-      if (!arg) return usage('video "<rhyme / song / story text>" [--render] [--json]');
+      // Character + song are optional inputs: --character "<desc>"  --song <file>.
+      if (!arg) return usage('video "<scene/story text>" [--character "<desc>"] [--song <file>] [--render] [--json]');
       const { registry } = buildProviderRegistry({
         forceLocal: values.local as boolean,
         objectStore: new FileObjectStore(values.assets as string),
       });
-      const result = await new ContentService(store, registry).createFromContent(arg);
+      if (values.song) process.env["ACF_SONG_FILE"] = values.song as string; // becomes the soundtrack at render
+      const result = await new ContentService(store, registry).createFromContent(arg, {
+        ...(values.character ? { character: values.character as string } : {}),
+      });
       if (values.json) {
         console.log(JSON.stringify({ channelId: result.channelId, storyboard: result.storyboard }, null, 2));
       } else {

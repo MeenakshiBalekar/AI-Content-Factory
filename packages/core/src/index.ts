@@ -90,6 +90,8 @@ export {
   ContentDirector,
   decomposeDeterministically,
   splitIntoLines,
+  parseCharacter,
+  applyUserCharacter,
 } from "./content/content-director.ts";
 export type { DirectOptions } from "./content/content-director.ts";
 export { storyboardToPlan } from "./content/storyboard-adapter.ts";

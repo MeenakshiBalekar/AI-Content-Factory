@@ -111,6 +111,42 @@ test("ContentService.createFromContent turns arbitrary text into a full episode"
   });
 });
 
+test("a user-provided --character becomes the canonical cast in every scene", async () => {
+  const sb = decomposeDeterministically(
+    "The fox wakes up and stretches. The fox runs through a meadow.",
+  );
+  const { applyUserCharacter, parseCharacter } = await import("../src/content/content-director.ts");
+
+  // Name + description parsing.
+  assert.deepEqual(parseCharacter("Milo, a red fox cub in a teal vest"), {
+    name: "Milo",
+    description: "a red fox cub in a teal vest",
+  });
+  assert.deepEqual(parseCharacter("a friendly blue dinosaur"), {
+    name: "Hero",
+    description: "a friendly blue dinosaur",
+  });
+
+  const withChar = applyUserCharacter(sb, "Milo, a cute red fox cub wearing a teal explorer vest");
+  assert.equal(withChar.characters.length, 1);
+  assert.equal(withChar.characters[0]!.name, "Milo");
+  assert.match(withChar.characters[0]!.description, /red fox cub/);
+  // The invented name is gone from every scene; Milo is the actor everywhere.
+  for (const s of withChar.scenes) {
+    assert.deepEqual(s.characters, ["Milo"]);
+    assert.ok(!/\bSuni|Kai|Lina|Ava|Ravi|Nia|Theo\b/.test(s.visual + s.action));
+  }
+});
+
+test("ContentDirector applies a user character through direct()", async () => {
+  const sb = await new ContentDirector().direct("The fox runs and jumps.", {
+    character: "A friendly blue dinosaur",
+  });
+  assert.equal(sb.characters[0]!.description, "A friendly blue dinosaur");
+  assert.equal(sb.characters[0]!.name, "Hero");
+  assert.deepEqual(sb.scenes[0]!.characters, ["Hero"]);
+});
+
 test("a completely different input yields a completely different storyboard", async () => {
   await withStore(async (store) => {
     const a = await new ContentService(store, localRegistry()).createFromContent("The wheels on the bus go round and round.");
