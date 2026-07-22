@@ -144,6 +144,29 @@ default negative prompt. The same adapter works with real AUTOMATIC1111, SD.Next
 | `ACF_FONT_FILE` | Font file for on-screen text + subtitles (see Windows note) | per-OS system font |
 | `ACF_FFMPEG_BIN` / `ACF_FFPROBE_BIN` | Override FFmpeg binaries | `ffmpeg` / `ffprobe` |
 
+## Real motion — image→video via a cloud model (Replicate)
+
+By default the renderer animates stills (Ken Burns). To get **real per-shot motion** — the
+character actually moving — wire a cloud image→video model. Each shot's keyframe (generated
+locally for character consistency) is sent to the model with the shot's action as the motion
+prompt; the returned clips are concatenated, a song is muxed, and subtitles burned in.
+
+```bash
+export ACF_VIDEO_PROVIDER=replicate
+export REPLICATE_API_TOKEN=r8_your_token          # replicate.com -> API tokens
+export ACF_VIDEO_MODEL=kwaivgi/kling-v1.6-standard # any image→video model on Replicate
+export ACF_VIDEO_IMAGE_FIELD=start_image          # the model's start-image input field
+export ACF_SONG_FILE=/path/to/song.mp3            # optional: master soundtrack
+
+node src/cli.ts render <channelId> 1 --dir .acf-memory --renders .acf-renders
+# render result reports motionSource: "video-model"
+```
+
+> ⚠️ **This is a paid cloud call** (~$0.10–0.50 per second of output). Nothing selects it
+> unless `ACF_VIDEO_PROVIDER=replicate` + token + model are set; otherwise the render stays
+> fully local (animated stills, `motionSource: "still"`). `ACF_VIDEO_EXTRA_INPUT` (JSON)
+> passes model-specific params, e.g. `{"cfg_scale":0.5,"duration":5}`.
+
 ## Windows note — Fontconfig ("Cannot load default config file")
 
 Stock Windows FFmpeg builds ship no default `fonts.conf`, so FFmpeg's `drawtext` and the

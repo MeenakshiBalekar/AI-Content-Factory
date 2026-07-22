@@ -65,6 +65,8 @@ export interface Episode {
     readonly imageSource: string;
     readonly audioSource: string;
     readonly musicSource: string;
+    /** "video-model" = real per-shot animated clips; "still" = animated stills. */
+    readonly motionSource: string;
     readonly renderedAt: string;
   };
   /** Multi-agent creative brief (Module 7), attached when the orchestrator runs with a crew.

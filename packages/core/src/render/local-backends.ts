@@ -1,8 +1,9 @@
 import { ImagesApiImageProvider } from "../providers/images-api-image-provider.ts";
 import { Automatic1111ImageProvider } from "../providers/automatic1111-image-provider.ts";
 import { SpeechApiAudioProvider } from "../providers/speech-api-audio-provider.ts";
+import { ReplicateVideoProvider } from "../providers/replicate-video-provider.ts";
 import { ProviderError } from "../providers/http/http-client.ts";
-import type { ImageProvider } from "../providers/provider.ts";
+import type { ImageProvider, VideoProvider } from "../providers/provider.ts";
 import { FileObjectStore } from "../storage/object-store.ts";
 import { fileURLToPath } from "node:url";
 
@@ -100,6 +101,42 @@ export class LocalSpeechProvider {
       throw err;
     }
   }
+}
+
+/**
+ * Build a cloud image→video provider from the environment, or undefined (fully-local mode).
+ * Currently supports Replicate: set ACF_VIDEO_PROVIDER=replicate, REPLICATE_API_TOKEN, and
+ * ACF_VIDEO_MODEL (an "owner/name" or version id). This is the paid "real motion" engine —
+ * nothing selects it unless configured.
+ */
+export function buildVideoProvider(env: Record<string, string | undefined> = process.env): VideoProvider | undefined {
+  const pick = (k: string): string | undefined => {
+    const v = env[k];
+    return v && v.trim() ? v.trim() : undefined;
+  };
+  const provider = pick("ACF_VIDEO_PROVIDER")?.toLowerCase();
+  if (provider !== "replicate") return undefined;
+  const token = pick("REPLICATE_API_TOKEN");
+  const model = pick("ACF_VIDEO_MODEL");
+  if (!token || !model) return undefined;
+  let extraInput: Record<string, unknown> = {};
+  const extraRaw = pick("ACF_VIDEO_EXTRA_INPUT");
+  if (extraRaw) {
+    try {
+      extraInput = JSON.parse(extraRaw) as Record<string, unknown>;
+    } catch {
+      /* ignore malformed extra input */
+    }
+  }
+  return new ReplicateVideoProvider({
+    token,
+    model,
+    baseUrl: pick("ACF_VIDEO_BASE_URL") ?? "https://api.replicate.com",
+    imageField: pick("ACF_VIDEO_IMAGE_FIELD") ?? "image",
+    extraInput,
+    pollIntervalMs: Number(pick("ACF_VIDEO_POLL_MS") ?? "3000"),
+    maxPollMs: Number(pick("ACF_VIDEO_MAX_POLL_MS") ?? "600000"),
+  });
 }
 
 /** Read image/speech base URLs from the environment. ACF_AUDIO_BASE_URL is the render-mode

@@ -12,6 +12,8 @@ import {
   localBackendConfig,
 } from "./local-backends.ts";
 import type { FontContext } from "./fonts.ts";
+import type { VideoProvider } from "../providers/provider.ts";
+import { HttpClient } from "../providers/http/http-client.ts";
 
 /**
  * Resolves an episode's beats into REAL files on disk for the renderer. For each capability it
@@ -22,12 +24,16 @@ import type { FontContext } from "./fonts.ts";
 export type ImageSource = "ai-local" | "procedural-placeholder";
 export type AudioSource = "ai-local" | "procedural-silence";
 export type MusicSource = "file" | "procedural-tone" | "none";
+export type MotionSource = "video-model" | "still"; // real clips vs animated stills
 
 export interface RenderBeat {
   readonly index: number;
   readonly imagePath: string;
   readonly audioPath: string; // one combined track, padded to durationSec
   readonly durationSec: number;
+  /** A real animated clip for this shot (image→video). When present, the renderer uses the
+   *  clip instead of animating the still — this is what makes the output a real video. */
+  readonly videoPath?: string;
 }
 
 export interface RenderPlan {
@@ -37,6 +43,9 @@ export interface RenderPlan {
   readonly musicSource: MusicSource;
   readonly imageSource: ImageSource;
   readonly audioSource: AudioSource;
+  readonly motionSource: MotionSource;
+  /** A user-supplied song used as the master soundtrack (ACF_SONG_FILE). */
+  readonly songPath: string | undefined;
   readonly width: number;
   readonly height: number;
   readonly fps: number;
@@ -57,13 +66,16 @@ export class AssetResolver {
   readonly #workdir: string;
   readonly #env: Record<string, string | undefined>;
   readonly #fonts: FontContext | undefined;
+  readonly #videoProvider: VideoProvider | undefined;
 
   constructor(
     memory: ChannelMemory,
     workdir: string,
     env: Record<string, string | undefined> = process.env,
     fonts?: FontContext,
+    videoProvider?: VideoProvider,
   ) {
+    this.#videoProvider = videoProvider;
     this.#memory = memory;
     this.#workdir = workdir;
     this.#env = env;
@@ -139,7 +151,22 @@ export class AssetResolver {
       const audioPath = join(this.#workdir, `beat${beat.index}.m4a`);
       await combineBeatAudio(lineFiles, audioPath, beatDuration);
       totalDuration += beatDuration;
-      beats.push({ index: beat.index, imagePath, audioPath, durationSec: beatDuration });
+
+      // --- motion: image→video per shot (the keyframe animates) ---
+      let videoPath: string | undefined;
+      if (this.#videoProvider) {
+        const asset = await this.#videoProvider.generateVideo({
+          prompt: beat.summary, // the shot's visual + action
+          seed: typeof imgAsset?.meta?.["seed"] === "number" ? imgAsset.meta["seed"] : beat.index,
+          aspect,
+          durationSec: Math.round(beatDuration),
+          imageUri: `file://${imagePath}`,
+        });
+        videoPath = join(this.#workdir, `beat${beat.index}.mp4`);
+        await this.#fetchTo(asset.outputUri, videoPath);
+      }
+
+      beats.push({ index: beat.index, imagePath, audioPath, durationSec: beatDuration, ...(videoPath ? { videoPath } : {}) });
     }
 
     // --- subtitles ---
@@ -162,6 +189,10 @@ export class AssetResolver {
       musicSource = "procedural-tone";
     }
 
+    // --- song: a user-supplied soundtrack that becomes the video's master audio ---
+    const songFile = this.#env["ACF_SONG_FILE"];
+    const songPath = songFile && existsSync(songFile) ? songFile : undefined;
+
     return {
       beats,
       srtPath,
@@ -169,11 +200,24 @@ export class AssetResolver {
       musicSource,
       imageSource: imageProvider ? "ai-local" : "procedural-placeholder",
       audioSource: speechProvider ? "ai-local" : "procedural-silence",
+      motionSource: this.#videoProvider ? "video-model" : "still",
+      songPath,
       width,
       height,
       fps: 30,
       transitionSec: 0.5,
     };
+  }
+
+  /** Fetch a clip URL (http/https) or local file (file://) into `dest`. */
+  async #fetchTo(uri: string, dest: string): Promise<void> {
+    if (uri.startsWith("file://") || uri.startsWith("/")) {
+      await copyTo(uri.startsWith("file://") ? uri.slice("file://".length) : uri, dest);
+      return;
+    }
+    const bytes = await new HttpClient({ provider: "video-download", defaultTimeoutMs: 300_000 })
+      .requestBytes({ method: "GET", url: uri, expect: "bytes", timeoutMs: 300_000 });
+    await writeFile(dest, bytes);
   }
 
   #beatTitle(index: number): string {

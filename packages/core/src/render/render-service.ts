@@ -10,6 +10,8 @@ import { checkFfmpeg, FfmpegError, FfmpegNotInstalledError, probeMedia } from ".
 import { AssetResolver } from "./asset-resolver.ts";
 import { FFmpegRenderer } from "./ffmpeg-renderer.ts";
 import { buildFontContext } from "./fonts.ts";
+import { buildVideoProvider } from "./local-backends.ts";
+import type { VideoProvider } from "../providers/provider.ts";
 
 export type RenderResult = NonNullable<Episode["render"]>;
 
@@ -24,11 +26,18 @@ export class RenderService {
   readonly #store: MemoryStore;
   readonly #root: string;
   readonly #env: Record<string, string | undefined>;
+  readonly #videoProvider: VideoProvider | undefined;
 
-  constructor(store: MemoryStore, rendersRoot = ".acf-renders", env: Record<string, string | undefined> = process.env) {
+  constructor(
+    store: MemoryStore,
+    rendersRoot = ".acf-renders",
+    env: Record<string, string | undefined> = process.env,
+    videoProvider?: VideoProvider,
+  ) {
     this.#store = store;
     this.#root = resolve(rendersRoot);
     this.#env = env;
+    this.#videoProvider = videoProvider;
   }
 
   async render(channelId: ChannelId, episodeNumber: number): Promise<RenderResult> {
@@ -46,7 +55,10 @@ export class RenderService {
     // system config (the Windows "Cannot load default config file" crash).
     const fonts = await buildFontContext(workdir, this.#env);
 
-    const plan = await new AssetResolver(memory, join(workdir, "assets"), this.#env, fonts).resolve(episode);
+    // A cloud image→video provider (Replicate) turns each shot's keyframe into real motion,
+    // when configured; otherwise the render stays fully local (animated stills).
+    const videoProvider = this.#videoProvider ?? buildVideoProvider(this.#env);
+    const plan = await new AssetResolver(memory, join(workdir, "assets"), this.#env, fonts, videoProvider).resolve(episode);
     const outPath = join(workdir, "episode.mp4");
     await new FFmpegRenderer().render(plan, outPath, fonts);
 
@@ -68,6 +80,7 @@ export class RenderService {
       imageSource: plan.imageSource,
       audioSource: plan.audioSource,
       musicSource: plan.musicSource,
+      motionSource: plan.motionSource,
       renderedAt: new Date().toISOString(),
     };
 
